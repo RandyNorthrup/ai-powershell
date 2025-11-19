@@ -15,6 +15,13 @@ A standalone Windows chat application with 145 embedded PowerShell management to
 
 ## Quick Start
 
+### Option 1: Run Pre-compiled Executable (Recommended)
+1. Download `ChatClient.exe` from the repository
+2. Double-click to run (no installation needed)
+3. Enter your OpenAI API key in Settings
+4. Start chatting!
+
+### Option 2: Run PowerShell Script
 1. Run the script:
 ```powershell
 .\ChatClient.ps1
@@ -185,16 +192,26 @@ Stored in `%APPDATA%\AIChat\settings.json`:
 - **gpt-4-turbo** - High performance with extended context
 - **gpt-3.5-turbo** - Legacy model support
 
-## Optional: Compile to Executable
+## Pre-compiled Executable
 
-Create a standalone .exe with no dependencies:
+A ready-to-run `ChatClient.exe` (~132 KB) is included in the repository:
+- **Zero installation required** - Just download and run
+- **No PowerShell experience needed** - Standard Windows application
+- **All 145 tools embedded** - Complete functionality in standalone executable
+- **Same features as script** - Identical behavior and capabilities
+
+To run: Simply double-click `ChatClient.exe`
+
+## Build from Source (Optional)
+
+If you want to compile your own executable:
 
 ```powershell
 Install-Module ps2exe -Scope CurrentUser
-Invoke-ps2exe -inputFile .\ChatClient.ps1 -outputFile .\ChatClient.exe -noConsole -iconFile .\build\icon.ico
+Invoke-ps2exe -inputFile .\ChatClient.ps1 -outputFile .\ChatClient.exe -noConsole -title "AI Chat Client"
 ```
 
-Results in a ~6MB executable with all 145 tools embedded.
+Results in a ~132 KB executable with all 145 tools embedded.
 
 ## Requirements
 

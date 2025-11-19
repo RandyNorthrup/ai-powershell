@@ -14,9 +14,6 @@ settings.json
 *.backup
 *.bak
 
-# Compiled executables
-*.exe
-
 # Build artifacts
 build/
 
