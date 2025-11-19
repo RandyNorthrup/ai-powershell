@@ -1,0 +1,24 @@
+# Windows
+Thumbs.db
+desktop.ini
+*.lnk
+
+# PowerShell
+*.ps1~
+*.ps1.bak
+
+# Settings
+settings.json
+
+# Backups
+*.backup
+*.bak
+
+# Compiled executables
+*.exe
+
+# Build artifacts
+build/
+
+# VS Code
+.vscode/
