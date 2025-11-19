@@ -25,7 +25,7 @@ A standalone Windows chat application with 145 embedded PowerShell management to
 4. Add custom instructions (optional)
 5. Start chatting - AI automatically executes PowerShell tools as needed
 
-### Keyboard Shortcuts
+**Keyboard Shortcuts:**
 - **Enter** - Send message
 - **Shift+Enter** - New line in message
 
@@ -175,11 +175,11 @@ This comprehensive documentation enables the AI to make intelligent decisions ab
 
 Stored in `%APPDATA%\AIChat\settings.json`:
 - OpenAI API key
-- Selected model (gpt-4o-mini, gpt-4o, gpt-4-turbo, gpt-3.5-turbo)
+- Selected model
 - Custom instructions
 - Temperature (hardcoded to 0 for deterministic responses)
 
-### Available Models
+**Available Models:**
 - **gpt-4o-mini** (default) - Fast and cost-effective
 - **gpt-4o** - Most capable, balanced performance
 - **gpt-4-turbo** - High performance with extended context
@@ -215,11 +215,6 @@ Results in a ~6MB executable with all 145 tools embedded.
 
 ## Technical Details
 
-### Keyboard Behavior
-- **Enter** alone sends the message immediately
-- **Shift+Enter** inserts a new line for multi-line messages
-- Uses `PreviewKeyDown` event for reliable key handling
-
 ### Tool Execution Flow
 1. User sends message to OpenAI
 2. `Get-RelevantTools` analyzes query and selects up to 128 relevant tools
@@ -228,7 +223,7 @@ Results in a ~6MB executable with all 145 tools embedded.
 5. Results returned to OpenAI for natural language response
 6. AI maintains full conversation context and task history
 
-### Compatibility
+### PowerShell Compatibility
 - **PowerShell 5.1**: Uses manual PSObject property enumeration for JSON conversion
 - **PowerShell 7+**: Uses `-AsHashtable` parameter for faster JSON conversion
 - Automatically detects version at startup and adapts accordingly
