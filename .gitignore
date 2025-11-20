@@ -1,21 +1,65 @@
 # Windows
 Thumbs.db
-desktop.ini
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
 *.lnk
+*.stackdump
 
 # PowerShell
 *.ps1~
 *.ps1.bak
+*.swp
+*~
 
-# Settings
+# Application Settings and User Data
 settings.json
+%APPDATA%/AIChat/
 
-# Backups
+# AI Reference Documentation (user-generated)
+AI_Reference/
+
+# Backups and Temporary Files
 *.backup
 *.bak
+*.tmp
+*.temp
+*.old
+*.orig
 
-# Build artifacts
+# Build Artifacts
 build/
+dist/
+*.zip
+*.7z
+
+# Development and Analysis Files
+CIS_ANALYSIS.txt
+CIS_ROADMAP*.txt
+cis_toc*.txt
+analysis.txt
+notes.txt
+scratch.txt
+TODO.txt
+ROADMAP.txt
+
+# Logs
+*.log
+logs/
 
 # VS Code
 .vscode/
+*.code-workspace
+
+# JetBrains IDEs
+.idea/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+.directory
+.Trash-*
