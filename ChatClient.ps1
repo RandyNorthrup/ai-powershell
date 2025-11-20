@@ -112,7 +112,7 @@ $global:conversationHistory = @()
 $global:completedTasks = @()
 $global:currentPlan = $null
 
-# Define ALL 228+ OpenAI tool schemas with comprehensive parameters (expanded from 145 to 228+)
+# Define ALL 240+ OpenAI tool schemas with comprehensive parameters (expanded from 145 to 240+)
 $global:toolDefinitions = @(
     # Network Tools (11)
     @{type="function"; function=@{name="test_network_connection"; description="Test network connectivity to a remote host using Test-NetConnection. Can perform ping tests, TCP port testing, and route tracing."; parameters=@{type="object"; properties=@{computerName=@{type="string"; description="Target host (hostname, FQDN, or IP address)"}; port=@{type="number"; description="Optional: TCP port number to test (e.g., 80, 443, 3389)"}}; required=@("computerName")}}}
@@ -402,6 +402,20 @@ $global:toolDefinitions = @(
     @{type="function"; function=@{name="parse_json_file"; description="Parse JSON file and extract data using ConvertFrom-Json. Can navigate nested objects and arrays. Returns structured data."; parameters=@{type="object"; properties=@{filePath=@{type="string"; description="Path to JSON file"}; propertyPath=@{type="string"; description="Optional: Dot-notation path to extract (e.g., 'users.0.name' for first user's name)"}}; required=@("filePath")}}}
     @{type="function"; function=@{name="convert_file_encoding"; description="Convert text file encoding (UTF-8, UTF-16, ASCII, etc.) using Get-Content and Set-Content with -Encoding parameter. Useful for fixing encoding issues."; parameters=@{type="object"; properties=@{filePath=@{type="string"; description="Path to file to convert"}; targetEncoding=@{type="string"; enum=@("UTF8","UTF8BOM","UTF16","UTF16BE","UTF32","ASCII","Unicode"); description="Target encoding"}; outputPath=@{type="string"; description="Output file path (can be same as input to overwrite)"}}; required=@("filePath","targetEncoding","outputPath")}}}
     @{type="function"; function=@{name="count_lines_words_chars"; description="Count lines, words, and characters in text file using Get-Content and Measure-Object. Returns file statistics similar to Unix 'wc' command."; parameters=@{type="object"; properties=@{filePath=@{type="string"; description="Path to text file"}}; required=@("filePath")}}}
+    
+    # Windows Imaging (WIM/DISM) Tools (12)
+    @{type="function"; function=@{name="get_wim_info"; description="Get information about a WIM (Windows Imaging) file using DISM /Get-WimInfo. Shows image count, names, descriptions, sizes, and architecture (x86/x64/ARM). Used for analyzing Windows installation media, system images, and backups."; parameters=@{type="object"; properties=@{wimPath=@{type="string"; description="Full path to WIM file (e.g., 'C:\\Images\\install.wim', 'D:\\backup.wim')"}}; required=@("wimPath")}}}
+    @{type="function"; function=@{name="get_wim_image_details"; description="Get detailed information about specific image index in WIM file using DISM /Get-ImageInfo. Shows Windows edition, version, build, architecture, creation date, languages, size, and included features/packages."; parameters=@{type="object"; properties=@{wimPath=@{type="string"; description="Path to WIM file"}; imageIndex=@{type="number"; description="Image index number (1-based, use get_wim_info to list available indexes)"}}; required=@("wimPath","imageIndex")}}}
+    @{type="function"; function=@{name="mount_wim_image"; description="Mount WIM image to directory for read-write access using DISM /Mount-Wim. Allows offline servicing: add/remove drivers, packages, updates. Requires administrator privileges. Remember to unmount when done."; parameters=@{type="object"; properties=@{wimPath=@{type="string"; description="Path to WIM file"}; imageIndex=@{type="number"; description="Image index to mount"}; mountPath=@{type="string"; description="Empty directory where image will be mounted (e.g., 'C:\\Mount')"}; readOnly=@{type="boolean"; description="true for read-only mount (faster, safer), false for read-write (allows modifications)"}}; required=@("wimPath","imageIndex","mountPath","readOnly")}}}
+    @{type="function"; function=@{name="unmount_wim_image"; description="Unmount WIM image and optionally commit changes using DISM /Unmount-Wim. If mounted read-write, can save or discard modifications. Always unmount images when finished to avoid corruption."; parameters=@{type="object"; properties=@{mountPath=@{type="string"; description="Directory where image is mounted"}; commit=@{type="boolean"; description="true to save changes to WIM (requires read-write mount), false to discard changes"}}; required=@("mountPath","commit")}}}
+    @{type="function"; function=@{name="get_mounted_wim_images"; description="List all currently mounted WIM images using DISM /Get-MountedWimInfo. Shows mount paths, WIM file locations, image indexes, mount status (valid/invalid), and read-only status. Useful for tracking active mounts."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
+    @{type="function"; function=@{name="cleanup_wim_mounts"; description="Clean up corrupted or orphaned WIM mounts using DISM /Cleanup-Wim. Removes stale mount points from registry. Use when unmount fails or system crashes during mount. Requires administrator privileges."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
+    @{type="function"; function=@{name="export_wim_image"; description="Export specific image from WIM to new WIM file using DISM /Export-Image. Can compress, split, or create single-image WIM files. Useful for extracting one edition from multi-edition media or optimizing WIM size."; parameters=@{type="object"; properties=@{sourceWim=@{type="string"; description="Source WIM file path"}; imageIndex=@{type="number"; description="Image index to export"}; destinationWim=@{type="string"; description="Destination WIM file path (will be created)"}; compressionType=@{type="string"; enum=@("none","fast","max"); description="'none' for no compression, 'fast' for quick compression, 'max' for maximum compression (slower)"}}; required=@("sourceWim","imageIndex","destinationWim")}}}
+    @{type="function"; function=@{name="capture_wim_image"; description="Capture directory or drive to WIM file using DISM /Capture-Image. Creates bootable system image or data backup. Can append to existing WIM or create new one. Supports compression and excluding files. Requires administrator privileges."; parameters=@{type="object"; properties=@{sourcePath=@{type="string"; description="Path to capture (e.g., 'C:\\', 'D:\\Data')"}; wimPath=@{type="string"; description="Destination WIM file path"}; imageName=@{type="string"; description="Name for the image in WIM (e.g., 'Windows 11 Pro', 'System Backup 2025-11-19')"}; imageDescription=@{type="string"; description="Optional description for the image"}; compressionType=@{type="string"; enum=@("none","fast","max"); description="Compression level"}}; required=@("sourcePath","wimPath","imageName","compressionType")}}}
+    @{type="function"; function=@{name="apply_wim_image"; description="Apply WIM image to drive/partition using DISM /Apply-Image. Extracts Windows installation or restores system image. Can apply to any partition. Used for Windows deployment and system restore. WARNING: Overwrites destination. Requires administrator privileges."; parameters=@{type="object"; properties=@{wimPath=@{type="string"; description="Source WIM file"}; imageIndex=@{type="number"; description="Image index to apply"}; targetPath=@{type="string"; description="Destination drive/partition (e.g., 'C:\\', 'D:\\Restore'). Will overwrite contents!"}}; required=@("wimPath","imageIndex","targetPath")}}}
+    @{type="function"; function=@{name="split_wim_file"; description="Split large WIM file into smaller SWM (split WIM) files using DISM /Split-Image. Useful for FAT32 file systems (4GB limit), network transfers, or DVD media. Each file will be numbered sequentially (.swm, .sw2, .sw3...)."; parameters=@{type="object"; properties=@{wimPath=@{type="string"; description="Source WIM file to split"}; destinationPath=@{type="string"; description="Directory where split files will be created"}; fileSizeMB=@{type="number"; description="Maximum size of each split file in MB (e.g., 4000 for FAT32 compatibility, 700 for CD size)"}}; required=@("wimPath","destinationPath","fileSizeMB")}}}
+    @{type="function"; function=@{name="get_wim_drivers"; description="List drivers in mounted WIM image using DISM /Get-Drivers. Shows driver package names, published names, class names (Network, Display, Storage), providers, dates, and versions. Useful for auditing included drivers."; parameters=@{type="object"; properties=@{mountPath=@{type="string"; description="Path where WIM image is mounted (must be mounted first with mount_wim_image)"}}; required=@("mountPath")}}}
+    @{type="function"; function=@{name="add_driver_to_wim"; description="Add driver to mounted WIM image using DISM /Add-Driver. Injects driver .inf files into offline Windows image. Useful for adding storage, network, or other hardware drivers to installation media or recovery images. Requires mounted read-write image."; parameters=@{type="object"; properties=@{mountPath=@{type="string"; description="Path where WIM is mounted"}; driverPath=@{type="string"; description="Path to driver .inf file or folder containing drivers"}; recurse=@{type="boolean"; description="true to search subfolders for drivers, false to only check specified path"}}; required=@("mountPath","driverPath","recurse")}}}
 )
 
 function Get-Settings {
@@ -1404,6 +1418,78 @@ interface IAudioEndpointVolume {
                     words = ($content -split '\s+').Count
                     characters = $content.Length
                 } | ConvertTo-Json
+            }
+            
+            # Windows Imaging (WIM/DISM) Tools
+            "get_wim_info" {
+                dism /Get-WimInfo /WimFile:"$($arguments.wimPath)"
+            }
+            "get_wim_image_details" {
+                dism /Get-ImageInfo /WimFile:"$($arguments.wimPath)" /Index:$($arguments.imageIndex)
+            }
+            "mount_wim_image" {
+                if (-not (Test-Path $arguments.mountPath)) {
+                    New-Item -ItemType Directory -Path $arguments.mountPath -Force | Out-Null
+                }
+                if ($arguments.readOnly) {
+                    dism /Mount-Wim /WimFile:"$($arguments.wimPath)" /Index:$($arguments.imageIndex) /MountDir:"$($arguments.mountPath)" /ReadOnly
+                } else {
+                    dism /Mount-Wim /WimFile:"$($arguments.wimPath)" /Index:$($arguments.imageIndex) /MountDir:"$($arguments.mountPath)"
+                }
+                "WIM image mounted at $($arguments.mountPath)"
+            }
+            "unmount_wim_image" {
+                if ($arguments.commit) {
+                    dism /Unmount-Wim /MountDir:"$($arguments.mountPath)" /Commit
+                    "WIM image unmounted and changes committed"
+                } else {
+                    dism /Unmount-Wim /MountDir:"$($arguments.mountPath)" /Discard
+                    "WIM image unmounted and changes discarded"
+                }
+            }
+            "get_mounted_wim_images" {
+                dism /Get-MountedWimInfo
+            }
+            "cleanup_wim_mounts" {
+                dism /Cleanup-Wim
+                "WIM mount cleanup completed"
+            }
+            "export_wim_image" {
+                $compressionMap = @{
+                    "none" = "none"
+                    "fast" = "fast"
+                    "max" = "max"
+                }
+                $compression = $compressionMap[$arguments.compressionType]
+                dism /Export-Image /SourceImageFile:"$($arguments.sourceWim)" /SourceIndex:$($arguments.imageIndex) /DestinationImageFile:"$($arguments.destinationWim)" /Compress:$compression
+                "Image exported to $($arguments.destinationWim)"
+            }
+            "capture_wim_image" {
+                $params = "/Capture-Image /ImageFile:`"$($arguments.wimPath)`" /CaptureDir:`"$($arguments.sourcePath)`" /Name:`"$($arguments.imageName)`" /Compress:$($arguments.compressionType)"
+                if ($arguments.imageDescription) {
+                    $params += " /Description:`"$($arguments.imageDescription)`""
+                }
+                dism $params
+                "Image captured to $($arguments.wimPath)"
+            }
+            "apply_wim_image" {
+                dism /Apply-Image /ImageFile:"$($arguments.wimPath)" /Index:$($arguments.imageIndex) /ApplyDir:"$($arguments.targetPath)"
+                "Image applied to $($arguments.targetPath)"
+            }
+            "split_wim_file" {
+                dism /Split-Image /ImageFile:"$($arguments.wimPath)" /SWMFile:"$($arguments.destinationPath)\install.swm" /FileSize:$($arguments.fileSizeMB)
+                "WIM file split into $($arguments.fileSizeMB)MB chunks at $($arguments.destinationPath)"
+            }
+            "get_wim_drivers" {
+                dism /Image:"$($arguments.mountPath)" /Get-Drivers
+            }
+            "add_driver_to_wim" {
+                if ($arguments.recurse) {
+                    dism /Image:"$($arguments.mountPath)" /Add-Driver /Driver:"$($arguments.driverPath)" /Recurse
+                } else {
+                    dism /Image:"$($arguments.mountPath)" /Add-Driver /Driver:"$($arguments.driverPath)"
+                }
+                "Driver added to mounted image"
             }
             
             default { "Tool '$toolName' execution not implemented" }

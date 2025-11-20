@@ -1,11 +1,11 @@
 # AI Chat Client with PowerShell Tools
 
-A standalone Windows chat application with 228+ embedded PowerShell management tools, OpenAI integration, and intelligent task tracking.
+A standalone Windows chat application with 240+ embedded PowerShell management tools, OpenAI integration, and intelligent task tracking.
 
 ## Features
 
 - **Pure PowerShell with WPF** - Zero dependencies, uses built-in Windows components only
-- **228+ PowerShell Tools** - Comprehensive Windows management across 25 categories with detailed parameter documentation
+- **240+ PowerShell Tools** - Comprehensive Windows management across 26 categories with detailed parameter documentation
 - **Intelligent Tool Selection** - Automatically selects relevant tools based on your query (respects OpenAI's 128-tool limit)
 - **Task Management & Context Awareness** - AI tracks completed tasks, creates plans, and maintains conversation history
 - **OpenAI Function Calling** - Seamless tool execution with comprehensive parameter awareness
@@ -36,7 +36,7 @@ A standalone Windows chat application with 228+ embedded PowerShell management t
 - **Enter** - Send message
 - **Shift+Enter** - New line in message
 
-## Tool Categories (228+ Total)
+## Tool Categories (240+ Total)
 
 ### Network Tools (11)
 - Test connectivity, ping, port testing, traceroute
@@ -250,6 +250,20 @@ A standalone Windows chat application with 228+ embedded PowerShell management t
 - Convert file encoding (UTF-8, ASCII, Unicode, etc.)
 - Count lines, words, and characters
 
+### **NEW: Windows Imaging (WIM/DISM) Tools (12)**
+- Get WIM file information (image count, names, sizes)
+- Get detailed image information (edition, version, build, architecture)
+- Mount WIM images for offline servicing (read-only or read-write)
+- Unmount WIM images with commit or discard changes
+- List currently mounted WIM images
+- Cleanup corrupted or orphaned WIM mounts
+- Export specific images from WIM to new file
+- Capture directory or drive to WIM file
+- Apply WIM image to drive/partition (deployment/restore)
+- Split large WIM files into smaller SWM files (FAT32 compatibility)
+- List drivers in mounted WIM image
+- Add drivers to mounted WIM image (.inf injection)
+
 ## Task Tracking & Context Awareness
 
 The AI assistant maintains:
@@ -269,7 +283,7 @@ AI: [Shows completed steps and remaining work]
 
 ## Intelligent Tool Selection
 
-With 228+ tools available but OpenAI's limit of 128 tools per request, the application intelligently:
+With 240+ tools available but OpenAI's limit of 128 tools per request, the application intelligently:
 1. Analyzes your query for keywords
 2. Matches to relevant tool categories
 3. Selects the top 3 most relevant categories
@@ -310,23 +324,23 @@ Stored in `%APPDATA%\AIChat\settings.json`:
 A ready-to-run `ChatClient.exe` is included in the repository:
 - **Zero installation required** - Just download and run
 - **No PowerShell experience needed** - Standard Windows application
-- **All 228+ tools embedded** - Complete functionality in standalone executable
+- **All 240+ tools embedded** - Complete functionality in standalone executable
 - **Same features as script** - Identical behavior and capabilities
 
 To run: Simply double-click `ChatClient.exe`
 
-**Note:** The executable will be larger after recompilation with new tools (~200-250 KB estimated).
+**Note:** The executable will be larger after recompilation with new tools (~220-250 KB estimated).
 
 ## Build from Source (Optional)
 
-If you want to compile your own executable with all 228+ tools:
+If you want to compile your own executable with all 240+ tools:
 
 ```powershell
 Install-Module ps2exe -Scope CurrentUser
 Invoke-ps2exe -inputFile .\ChatClient.ps1 -outputFile .\ChatClient.exe -noConsole -title "AI Chat Client"
 ```
 
-Results in a ~200-250 KB executable with all 228+ tools embedded.
+Results in a ~220-250 KB executable with all 240+ tools embedded.
 
 ## Requirements
 
@@ -347,8 +361,8 @@ All core Windows management tools work without additional software.
 
 ## Architecture
 
-- **Single .ps1 file (~1500+ lines)** - All code in one portable script
-- **Switch-based tool execution** - Clean mapping of 228+ tool names to PowerShell commands
+- **Single .ps1 file (~1800+ lines)** - All code in one portable script
+- **Switch-based tool execution** - Clean mapping of 240+ tool names to PowerShell commands
 - **Dynamic tool selection** - Category-based filtering for optimal performance
 - **WPF XAML UI** - Native Windows interface with dark theme
 - **Zero external dependencies** - Uses only built-in Windows components
@@ -373,7 +387,7 @@ All core Windows management tools work without additional software.
 
 ## What's New in v2.0
 
-**Massive Tool Expansion** - Added 83+ new tools across 12 new categories:
+**Massive Tool Expansion** - Added 95+ new tools across 13 new categories:
 - Performance monitoring and system health diagnostics
 - Database and SQL Server management
 - SSL/TLS certificate operations
@@ -386,8 +400,17 @@ All core Windows management tools work without additional software.
 - Hyper-V, Docker, and WSL management
 - Advanced archive handling (7-Zip, TAR.GZ)
 - Text processing and file parsing (CSV, XML, JSON, regex)
+- **Windows Imaging (WIM/DISM) - Full offline servicing capabilities**
 
-**Total Tool Count**: Expanded from 145 to 228+ comprehensive tools
+**Total Tool Count**: Expanded from 145 to 240+ comprehensive tools
+
+### WIM Management Use Cases
+- **Windows Deployment**: Customize installation media, inject drivers, add updates
+- **System Imaging**: Capture and restore complete system images
+- **Offline Servicing**: Modify Windows images without booting them
+- **Recovery Operations**: Create and apply system recovery images
+- **Driver Management**: Pre-inject drivers into installation media
+- **Multi-boot Setup**: Extract specific Windows editions from install.wim
 
 ## License
 
