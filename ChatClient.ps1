@@ -112,7 +112,7 @@ $global:conversationHistory = @()
 $global:completedTasks = @()
 $global:currentPlan = $null
 
-# Define ALL 145 OpenAI tool schemas with comprehensive parameters
+# Define ALL 228+ OpenAI tool schemas with comprehensive parameters (expanded from 145 to 228+)
 $global:toolDefinitions = @(
     # Network Tools (11)
     @{type="function"; function=@{name="test_network_connection"; description="Test network connectivity to a remote host using Test-NetConnection. Can perform ping tests, TCP port testing, and route tracing."; parameters=@{type="object"; properties=@{computerName=@{type="string"; description="Target host (hostname, FQDN, or IP address)"}; port=@{type="number"; description="Optional: TCP port number to test (e.g., 80, 443, 3389)"}}; required=@("computerName")}}}
@@ -285,6 +285,123 @@ $global:toolDefinitions = @(
     @{type="function"; function=@{name="get_completed_tasks"; description="Get list of all completed tasks in this session with timestamps. Shows chronological history of accomplished work. Useful for reviewing progress, generating status reports, or understanding conversation context."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
     @{type="function"; function=@{name="get_current_plan"; description="Get the current active plan and progress. Shows plan name, all steps, which steps are completed, and remaining tasks. Provides context about ongoing work and what comes next in the workflow."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
     @{type="function"; function=@{name="get_conversation_summary"; description="Get a summary of the conversation history including completed tasks, active plans, and session context. Useful for maintaining context awareness, generating session reports, or understanding what has been discussed and accomplished so far."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
+    
+    # Performance & Monitoring Tools (12)
+    @{type="function"; function=@{name="get_cpu_usage"; description="Get current CPU usage percentage per core and total using Get-Counter. Shows per-processor and total CPU utilization. Useful for identifying CPU bottlenecks and high-load processes."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
+    @{type="function"; function=@{name="get_memory_usage"; description="Get detailed memory statistics using Get-Counter and Get-CimInstance. Shows total physical memory, available memory, used memory, page file usage, and memory pressure percentage."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
+    @{type="function"; function=@{name="get_disk_io"; description="Get disk I/O statistics including read/write bytes per second, IOPS (operations per second), and disk queue length using Get-Counter. Identifies disk performance bottlenecks."; parameters=@{type="object"; properties=@{driveLetter=@{type="string"; description="Drive letter to monitor (e.g., 'C', 'D'). Omit to monitor all drives."}}; required=@()}}}
+    @{type="function"; function=@{name="get_network_throughput"; description="Get network throughput statistics showing bytes sent/received per second, packets per second, and bandwidth utilization using Get-Counter. Monitors network performance."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
+    @{type="function"; function=@{name="get_top_cpu_processes"; description="Get top CPU-consuming processes with percentage of CPU used, process name, PID, and user. Shows real-time CPU hogs. Useful for performance troubleshooting."; parameters=@{type="object"; properties=@{count=@{type="number"; description="Number of top processes to return (default: 10, range: 1-50)"}}; required=@()}}}
+    @{type="function"; function=@{name="get_top_memory_processes"; description="Get top memory-consuming processes with memory usage in MB/GB, process name, PID, and percentage of total memory. Identifies memory leaks and resource hogs."; parameters=@{type="object"; properties=@{count=@{type="number"; description="Number of top processes to return (default: 10, range: 1-50)"}}; required=@()}}}
+    @{type="function"; function=@{name="get_system_uptime"; description="Get system boot time and uptime in days, hours, minutes using Get-CimInstance Win32_OperatingSystem. Shows how long system has been running since last boot."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
+    @{type="function"; function=@{name="get_performance_report"; description="Generate comprehensive performance report including CPU, memory, disk, network stats, top processes, and system health. Produces detailed system health snapshot."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
+    @{type="function"; function=@{name="monitor_process_realtime"; description="Monitor a specific process in real-time showing CPU, memory, threads, handles updated every second for specified duration. Returns performance metrics over time."; parameters=@{type="object"; properties=@{processId=@{type="number"; description="Process ID to monitor"}; durationSeconds=@{type="number"; description="How long to monitor (1-300 seconds, default: 10)"}}; required=@("processId")}}}
+    @{type="function"; function=@{name="get_resource_alerts"; description="Check for resource alerts and warnings including high CPU (>80%), low memory (<10%), low disk space (<10%), and overheated components. Returns list of current system alerts."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
+    @{type="function"; function=@{name="benchmark_disk"; description="Run simple disk benchmark test measuring sequential read/write speeds in MB/s by creating and reading test file. Tests disk performance. Requires administrator privileges."; parameters=@{type="object"; properties=@{driveLetter=@{type="string"; description="Drive letter to benchmark (e.g., 'C', 'D')"}; testSizeMB=@{type="number"; description="Size of test file in MB (10-1000, default: 100)"}}; required=@("driveLetter")}}}
+    @{type="function"; function=@{name="get_handle_count"; description="Get total system handle count and per-process handle counts. High handle counts can indicate handle leaks or resource exhaustion. Shows top processes by handle usage."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
+    
+    # Database & SQL Tools (8)
+    @{type="function"; function=@{name="test_sql_connection"; description="Test connection to SQL Server database using System.Data.SqlClient. Verifies server accessibility, authentication, and database availability. Returns connection success/failure."; parameters=@{type="object"; properties=@{serverInstance=@{type="string"; description="SQL Server instance (e.g., 'localhost', 'SERVER\\SQLEXPRESS', 'server.domain.com,1433')"}; database=@{type="string"; description="Database name to connect to (e.g., 'master', 'AdventureWorks')"}; integratedSecurity=@{type="boolean"; description="true for Windows Authentication, false for SQL Authentication"}; username=@{type="string"; description="SQL username (required if integratedSecurity is false)"}; password=@{type="string"; description="SQL password (required if integratedSecurity is false)"}}; required=@("serverInstance","database","integratedSecurity")}}}
+    @{type="function"; function=@{name="execute_sql_query"; description="Execute SQL query and return results as JSON using System.Data.SqlClient. Can run SELECT, INSERT, UPDATE, DELETE queries. Returns dataset with column names and rows."; parameters=@{type="object"; properties=@{serverInstance=@{type="string"; description="SQL Server instance"}; database=@{type="string"; description="Database name"}; query=@{type="string"; description="SQL query to execute (e.g., 'SELECT * FROM users WHERE active=1')"}; integratedSecurity=@{type="boolean"; description="true for Windows Auth, false for SQL Auth"}; username=@{type="string"; description="SQL username (if SQL Auth)"}; password=@{type="string"; description="SQL password (if SQL Auth)"}}; required=@("serverInstance","database","query","integratedSecurity")}}}
+    @{type="function"; function=@{name="get_sql_server_info"; description="Get SQL Server instance information including version, edition, service pack level, collation, and instance name using system queries. Requires connection to SQL Server."; parameters=@{type="object"; properties=@{serverInstance=@{type="string"; description="SQL Server instance"}; integratedSecurity=@{type="boolean"; description="Use Windows Authentication"}; username=@{type="string"; description="SQL username (optional)"}; password=@{type="string"; description="SQL password (optional)"}}; required=@("serverInstance","integratedSecurity")}}}
+    @{type="function"; function=@{name="list_sql_databases"; description="List all databases on SQL Server instance with name, size, owner, status (online/offline), recovery model, and creation date using sys.databases view."; parameters=@{type="object"; properties=@{serverInstance=@{type="string"; description="SQL Server instance"}; integratedSecurity=@{type="boolean"; description="Use Windows Authentication"}}; required=@("serverInstance","integratedSecurity")}}}
+    @{type="function"; function=@{name="get_sql_tables"; description="List all tables in a database with table name, schema, row count, and size using sys.tables and sys.dm_db_partition_stats views."; parameters=@{type="object"; properties=@{serverInstance=@{type="string"; description="SQL Server instance"}; database=@{type="string"; description="Database name"}; integratedSecurity=@{type="boolean"; description="Use Windows Authentication"}}; required=@("serverInstance","database","integratedSecurity")}}}
+    @{type="function"; function=@{name="backup_sql_database"; description="Backup SQL Server database to file using BACKUP DATABASE T-SQL command. Creates full database backup. Requires appropriate SQL Server permissions and write access to backup location."; parameters=@{type="object"; properties=@{serverInstance=@{type="string"; description="SQL Server instance"}; database=@{type="string"; description="Database name to backup"}; backupPath=@{type="string"; description="Full path for backup file (e.g., 'C:\\Backups\\db_backup.bak')"}; integratedSecurity=@{type="boolean"; description="Use Windows Authentication"}}; required=@("serverInstance","database","backupPath","integratedSecurity")}}}
+    @{type="function"; function=@{name="restore_sql_database"; description="Restore SQL Server database from backup file using RESTORE DATABASE T-SQL command. WARNING: Overwrites existing database. Requires appropriate permissions."; parameters=@{type="object"; properties=@{serverInstance=@{type="string"; description="SQL Server instance"}; database=@{type="string"; description="Database name to restore to"}; backupPath=@{type="string"; description="Full path to backup file (.bak)"}; integratedSecurity=@{type="boolean"; description="Use Windows Authentication"}}; required=@("serverInstance","database","backupPath","integratedSecurity")}}}
+    @{type="function"; function=@{name="get_sql_performance"; description="Get SQL Server performance metrics including buffer cache hit ratio, page life expectancy, batch requests/sec, locks, deadlocks using sys.dm_os_performance_counters."; parameters=@{type="object"; properties=@{serverInstance=@{type="string"; description="SQL Server instance"}; integratedSecurity=@{type="boolean"; description="Use Windows Authentication"}}; required=@("serverInstance","integratedSecurity")}}}
+    
+    # Certificate & Encryption Tools (7)
+    @{type="function"; function=@{name="list_certificates"; description="List certificates in specified certificate store (My, Root, CA, TrustedPeople, etc.) showing thumbprint, subject, issuer, expiration date, and validity using Get-ChildItem Cert:\\."; parameters=@{type="object"; properties=@{storeLocation=@{type="string"; enum=@("CurrentUser","LocalMachine"); description="'CurrentUser' for user certificates, 'LocalMachine' for computer certificates"}; storeName=@{type="string"; description="Store name: 'My' (personal), 'Root' (trusted root), 'CA' (intermediate), 'TrustedPeople', 'TrustedPublisher'"}}; required=@("storeLocation","storeName")}}}
+    @{type="function"; function=@{name="get_certificate_details"; description="Get detailed information about a specific certificate including subject, issuer, serial number, thumbprint, key algorithm, signature algorithm, expiration dates, key usage, and enhanced key usage."; parameters=@{type="object"; properties=@{thumbprint=@{type="string"; description="Certificate thumbprint (40-character hex string)"}; storeLocation=@{type="string"; enum=@("CurrentUser","LocalMachine"); description="Store location where certificate is stored"}}; required=@("thumbprint","storeLocation")}}}
+    @{type="function"; function=@{name="test_certificate_expiration"; description="Check if certificates are expiring soon. Lists certificates expiring within specified days, showing days until expiration, thumbprint, and subject. Useful for certificate renewal planning."; parameters=@{type="object"; properties=@{daysThreshold=@{type="number"; description="Number of days to check ahead (e.g., 30, 60, 90)"}; storeLocation=@{type="string"; enum=@("CurrentUser","LocalMachine"); description="Store location to check"}}; required=@("daysThreshold","storeLocation")}}}
+    @{type="function"; function=@{name="export_certificate"; description="Export certificate to file in CER (public key only), PFX/PKCS12 (with private key), or Base64 format using Export-Certificate and Export-PfxCertificate cmdlets."; parameters=@{type="object"; properties=@{thumbprint=@{type="string"; description="Certificate thumbprint"}; storeLocation=@{type="string"; enum=@("CurrentUser","LocalMachine"); description="Store location"}; outputPath=@{type="string"; description="Output file path (use .cer for CER, .pfx for PFX)"}; includePrivateKey=@{type="boolean"; description="true to export with private key (PFX), false for public key only (CER)"}; password=@{type="string"; description="Password for PFX export (required if includePrivateKey is true)"}}; required=@("thumbprint","storeLocation","outputPath","includePrivateKey")}}}
+    @{type="function"; function=@{name="import_certificate"; description="Import certificate from file into certificate store using Import-Certificate. Supports CER, CRT, PFX, P7B formats. PFX import requires password."; parameters=@{type="object"; properties=@{filePath=@{type="string"; description="Path to certificate file (.cer, .crt, .pfx, .p7b)"}; storeLocation=@{type="string"; enum=@("CurrentUser","LocalMachine"); description="Store location to import to"}; storeName=@{type="string"; description="Store name (e.g., 'My', 'Root', 'CA')"}; password=@{type="string"; description="PFX password (required for .pfx files)"}}; required=@("filePath","storeLocation","storeName")}}}
+    @{type="function"; function=@{name="test_ssl_certificate"; description="Test SSL/TLS certificate of a website or server. Shows certificate details, expiration, issuer, subject alternative names, and validation status. Useful for troubleshooting HTTPS connections."; parameters=@{type="object"; properties=@{hostname=@{type="string"; description="Hostname to test (e.g., 'www.google.com', 'mail.company.com')"}; port=@{type="number"; description="Port number (default: 443)"}}; required=@("hostname")}}}
+    @{type="function"; function=@{name="create_self_signed_certificate"; description="Create self-signed certificate using New-SelfSignedCertificate cmdlet. Useful for development, testing, or internal applications. Can specify subject name, DNS names, key length, and validity period."; parameters=@{type="object"; properties=@{subjectName=@{type="string"; description="Certificate subject (e.g., 'CN=MyServer', 'CN=localhost')"}; dnsNames=@{type="array"; description="Array of DNS names for Subject Alternative Name (e.g., ['localhost', '*.example.com']"; items=@{type="string"}}; validityYears=@{type="number"; description="Years certificate is valid (1-10, default: 1)"}}; required=@("subjectName")}}}
+    
+    # Web & REST API Tools (10)
+    @{type="function"; function=@{name="http_get_request"; description="Send HTTP GET request to URL using Invoke-RestMethod/Invoke-WebRequest. Returns response body, status code, headers. Supports custom headers and authentication. Useful for API testing and web scraping."; parameters=@{type="object"; properties=@{url=@{type="string"; description="Full URL to request (e.g., 'https://api.example.com/users')"}; headers=@{type="object"; description="Optional: Custom headers as key-value pairs (e.g., {'Authorization': 'Bearer token', 'Accept': 'application/json'})"}}; required=@("url")}}}
+    @{type="function"; function=@{name="http_post_request"; description="Send HTTP POST request with JSON or form data using Invoke-RestMethod. Returns response body and status. Useful for API calls, form submissions, webhooks."; parameters=@{type="object"; properties=@{url=@{type="string"; description="Full URL to POST to"}; body=@{type="string"; description="Request body (JSON string or form data)"}; contentType=@{type="string"; description="Content-Type header (e.g., 'application/json', 'application/x-www-form-urlencoded')"}; headers=@{type="object"; description="Optional custom headers"}}; required=@("url","body","contentType")}}}
+    @{type="function"; function=@{name="http_put_request"; description="Send HTTP PUT request for updating resources via REST API using Invoke-RestMethod. Returns response body and status code."; parameters=@{type="object"; properties=@{url=@{type="string"; description="Full URL"}; body=@{type="string"; description="Request body (usually JSON)"}; contentType=@{type="string"; description="Content-Type header"}; headers=@{type="object"; description="Optional custom headers"}}; required=@("url","body","contentType")}}}
+    @{type="function"; function=@{name="http_delete_request"; description="Send HTTP DELETE request for deleting resources via REST API using Invoke-RestMethod. Returns response status."; parameters=@{type="object"; properties=@{url=@{type="string"; description="Full URL of resource to delete"}; headers=@{type="object"; description="Optional custom headers"}}; required=@("url")}}}
+    @{type="function"; function=@{name="download_file"; description="Download file from URL to local path using Invoke-WebRequest. Supports large files with progress indication. Can resume interrupted downloads with byte-range requests."; parameters=@{type="object"; properties=@{url=@{type="string"; description="URL of file to download"}; outputPath=@{type="string"; description="Local path where file will be saved (e.g., 'C:\\Downloads\\file.zip')"}}; required=@("url","outputPath")}}}
+    @{type="function"; function=@{name="test_url_availability"; description="Test if URL is accessible and measure response time using Invoke-WebRequest. Returns HTTP status code, response time in milliseconds, and availability status. Useful for monitoring web services."; parameters=@{type="object"; properties=@{url=@{type="string"; description="URL to test (e.g., 'https://www.example.com')"}}; required=@("url")}}}
+    @{type="function"; function=@{name="get_web_page_content"; description="Fetch web page HTML content using Invoke-WebRequest. Returns raw HTML, page title, links, images, and forms. Useful for web scraping and content extraction."; parameters=@{type="object"; properties=@{url=@{type="string"; description="URL of web page to fetch"}}; required=@("url")}}}
+    @{type="function"; function=@{name="test_rest_api"; description="Test REST API endpoint with method, headers, and body. Returns detailed response including status code, headers, body, and timing. Comprehensive API testing tool."; parameters=@{type="object"; properties=@{url=@{type="string"; description="API endpoint URL"}; method=@{type="string"; enum=@("GET","POST","PUT","DELETE","PATCH"); description="HTTP method"}; body=@{type="string"; description="Request body (optional, for POST/PUT/PATCH)"}; headers=@{type="object"; description="Request headers (optional)"}}; required=@("url","method")}}}
+    @{type="function"; function=@{name="parse_json_response"; description="Parse and format JSON response from API. Validates JSON syntax, pretty-prints output, and extracts specific fields. Useful for analyzing API responses and extracting data."; parameters=@{type="object"; properties=@{jsonString=@{type="string"; description="JSON string to parse and format"}; extractPath=@{type="string"; description="Optional: JSON path to extract (e.g., 'data.users[0].name')"}}; required=@("jsonString")}}}
+    @{type="function"; function=@{name="encode_decode_base64"; description="Encode string to Base64 or decode Base64 to string using [Convert]::ToBase64String and FromBase64String. Useful for API authentication, data transmission, and encoding/decoding tokens."; parameters=@{type="object"; properties=@{operation=@{type="string"; enum=@("encode","decode"); description="'encode' to convert text to Base64, 'decode' to convert Base64 to text"}; text=@{type="string"; description="Text to encode or Base64 string to decode"}}; required=@("operation","text")}}}
+    
+    # Printer & Print Queue Tools (6)
+    @{type="function"; function=@{name="list_printers"; description="List all installed printers with name, driver name, port name, shared status, and default printer indicator using Get-Printer. Shows local and network printers."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
+    @{type="function"; function=@{name="get_print_queue"; description="Get print queue for specified printer showing job ID, document name, user, pages, size, status (printing/paused/error), and submission time using Get-PrintJob."; parameters=@{type="object"; properties=@{printerName=@{type="string"; description="Printer name from list_printers"}}; required=@("printerName")}}}
+    @{type="function"; function=@{name="clear_print_queue"; description="Clear all jobs from a printer's print queue using Remove-PrintJob. Useful for clearing stuck print jobs. Requires administrator privileges."; parameters=@{type="object"; properties=@{printerName=@{type="string"; description="Printer name"}}; required=@("printerName")}}}
+    @{type="function"; function=@{name="cancel_print_job"; description="Cancel specific print job by ID using Remove-PrintJob. Removes job from queue and stops printing if in progress."; parameters=@{type="object"; properties=@{printerName=@{type="string"; description="Printer name"}; jobId=@{type="number"; description="Print job ID from get_print_queue"}}; required=@("printerName","jobId")}}}
+    @{type="function"; function=@{name="set_default_printer"; description="Set the default printer using Set-Printer or WMI Win32_Printer. Changes which printer is used by default in applications."; parameters=@{type="object"; properties=@{printerName=@{type="string"; description="Printer name to set as default"}}; required=@("printerName")}}}
+    @{type="function"; function=@{name="manage_printer_state"; description="Pause or resume a printer using Set-Printer or Suspend-PrintJob/Resume-PrintJob. Pausing prevents new jobs from printing without removing them from queue."; parameters=@{type="object"; properties=@{printerName=@{type="string"; description="Printer name"}; action=@{type="string"; enum=@("pause","resume"); description="'pause' to stop printing, 'resume' to continue printing"}}; required=@("printerName","action")}}}
+    
+    # Backup & Recovery Tools (8)
+    @{type="function"; function=@{name="create_system_restore_point"; description="Create system restore point using Checkpoint-Computer. Creates snapshot of system files, registry, and installed programs. Allows rollback if issues occur. Requires administrator privileges."; parameters=@{type="object"; properties=@{description=@{type="string"; description="Description for restore point (e.g., 'Before software installation', 'Pre-update backup')"}}; required=@("description")}}}
+    @{type="function"; function=@{name="list_restore_points"; description="List all system restore points with creation time, description, sequence number, and type using Get-ComputerRestorePoint. Shows available rollback points."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
+    @{type="function"; function=@{name="restore_system"; description="Restore system to previous restore point using rstrui.exe or Restore-Computer. WARNING: This reverts system files and registry to earlier state. Requires administrator privileges and restart."; parameters=@{type="object"; properties=@{restorePointNumber=@{type="number"; description="Restore point sequence number from list_restore_points"}}; required=@("restorePointNumber")}}}
+    @{type="function"; function=@{name="list_shadow_copies"; description="List Volume Shadow Copy (VSS) snapshots using vssadmin or Get-CimInstance Win32_ShadowCopy. Shows shadow copy ID, creation time, and volume. Used for Previous Versions feature."; parameters=@{type="object"; properties=@{driveLetter=@{type="string"; description="Drive letter to list shadow copies for (e.g., 'C', 'D')"}}; required=@("driveLetter")}}}
+    @{type="function"; function=@{name="create_shadow_copy"; description="Create Volume Shadow Copy snapshot using vssadmin or WMI. Creates point-in-time snapshot for file recovery via Previous Versions. Requires administrator privileges."; parameters=@{type="object"; properties=@{driveLetter=@{type="string"; description="Drive letter to snapshot (e.g., 'C', 'D')"}}; required=@("driveLetter")}}}
+    @{type="function"; function=@{name="export_event_viewer_config"; description="Export Event Viewer custom views and configuration to XML file. Useful for backup or transferring event viewer settings to other systems."; parameters=@{type="object"; properties=@{outputPath=@{type="string"; description="Path for XML export file (e.g., 'C:\\Backups\\eventviewer_config.xml')"}}; required=@("outputPath")}}}
+    @{type="function"; function=@{name="backup_registry_to_file"; description="Backup entire Windows Registry to .reg file using reg export. Can be restored later. WARNING: Registry file will be very large (hundreds of MB). Requires administrator privileges."; parameters=@{type="object"; properties=@{outputPath=@{type="string"; description="Output .reg file path (e.g., 'C:\\Backups\\full_registry_backup.reg')"}}; required=@("outputPath")}}}
+    @{type="function"; function=@{name="get_backup_status"; description="Get Windows Backup status and schedule using wbadmin or Get-WBSummary. Shows last backup time, next scheduled backup, backup location, and backup status. Requires Windows Server Backup feature."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
+    
+    # Active Directory Tools (9) - Requires RSAT/AD module
+    @{type="function"; function=@{name="get_ad_user"; description="Get Active Directory user information using Get-ADUser cmdlet. Shows username, display name, email, enabled status, last logon, password expiration. REQUIRES: Active Directory PowerShell module (RSAT)."; parameters=@{type="object"; properties=@{identity=@{type="string"; description="Username, SamAccountName, or DistinguishedName (e.g., 'jdoe', 'john.doe@domain.com', 'CN=John Doe,OU=Users,DC=domain,DC=com')"}}; required=@("identity")}}}
+    @{type="function"; function=@{name="search_ad_users"; description="Search Active Directory users by name, email, or other attributes using Get-ADUser with filters. Returns matching users with key properties. REQUIRES: AD PowerShell module."; parameters=@{type="object"; properties=@{searchTerm=@{type="string"; description="Search term (name, email, username)"}; searchField=@{type="string"; enum=@("Name","Email","SamAccountName","DisplayName"); description="Field to search in"}}; required=@("searchTerm","searchField")}}}
+    @{type="function"; function=@{name="get_ad_group_members"; description="List all members of Active Directory group using Get-ADGroupMember. Shows user names, object types (user/group), and distinguished names. REQUIRES: AD PowerShell module."; parameters=@{type="object"; properties=@{groupName=@{type="string"; description="Group name or DistinguishedName"}}; required=@("groupName")}}}
+    @{type="function"; function=@{name="get_ad_user_groups"; description="Get all Active Directory groups a user is member of using Get-ADPrincipalGroupMembership. Shows group names and distinguished names. REQUIRES: AD PowerShell module."; parameters=@{type="object"; properties=@{identity=@{type="string"; description="Username or DistinguishedName"}}; required=@("identity")}}}
+    @{type="function"; function=@{name="list_ad_computers"; description="List all computers in Active Directory domain using Get-ADComputer. Shows computer name, operating system, last logon date, enabled status, and distinguished name. REQUIRES: AD PowerShell module."; parameters=@{type="object"; properties=@{ouPath=@{type="string"; description="Optional: OU path to search in (e.g., 'OU=Workstations,DC=domain,DC=com')"}}; required=@()}}}
+    @{type="function"; function=@{name="get_ad_domain_info"; description="Get Active Directory domain information using Get-ADDomain. Shows domain name, domain controllers, functional level, NetBIOS name, forest name. REQUIRES: AD PowerShell module."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
+    @{type="function"; function=@{name="test_ad_credentials"; description="Test Active Directory user credentials without locking account. Validates username and password against domain using DirectoryServices. Returns authentication success/failure."; parameters=@{type="object"; properties=@{username=@{type="string"; description="Username (SamAccountName or UPN)"}; password=@{type="string"; description="Password to test"}; domain=@{type="string"; description="Domain name (optional, uses current domain if omitted)"}}; required=@("username","password")}}}
+    @{type="function"; function=@{name="get_locked_ad_accounts"; description="Find locked out Active Directory user accounts using Get-ADUser with LockedOut filter. Shows locked users with lockout time and account details. REQUIRES: AD PowerShell module."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
+    @{type="function"; function=@{name="get_disabled_ad_accounts"; description="Find disabled Active Directory user accounts using Get-ADUser with Enabled filter. Shows disabled accounts with last logon date and when disabled. REQUIRES: AD PowerShell module."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
+    
+    # Share & Permission Tools (7)
+    @{type="function"; function=@{name="list_smb_shares"; description="List all SMB network shares on the system using Get-SmbShare. Shows share name, path, description, shared to (Everyone/specific users), and permissions."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
+    @{type="function"; function=@{name="create_smb_share"; description="Create new SMB network share using New-SmbShare. Makes folder accessible over network. Requires administrator privileges. Can set share permissions."; parameters=@{type="object"; properties=@{name=@{type="string"; description="Share name (how it appears on network, e.g., 'Documents', 'Public')"}; path=@{type="string"; description="Local folder path to share (e.g., 'C:\\SharedFiles')"}; description=@{type="string"; description="Share description (optional)"}}; required=@("name","path")}}}
+    @{type="function"; function=@{name="remove_smb_share"; description="Remove SMB network share using Remove-SmbShare. Stops sharing folder over network without deleting files. Requires administrator privileges."; parameters=@{type="object"; properties=@{shareName=@{type="string"; description="Share name to remove (from list_smb_shares)"}}; required=@("shareName")}}}
+    @{type="function"; function=@{name="get_share_permissions"; description="Get share-level and NTFS permissions for SMB share using Get-SmbShareAccess and Get-Acl. Shows users/groups with access rights (Full/Change/Read)."; parameters=@{type="object"; properties=@{shareName=@{type="string"; description="Share name"}}; required=@("shareName")}}}
+    @{type="function"; function=@{name="set_share_permissions"; description="Set share-level permissions for SMB share using Grant-SmbShareAccess. Can grant Full, Change, or Read access to users/groups. Requires administrator privileges."; parameters=@{type="object"; properties=@{shareName=@{type="string"; description="Share name"}; accountName=@{type="string"; description="User or group name (e.g., 'DOMAIN\\User', 'Everyone', 'Administrators')"}; accessRight=@{type="string"; enum=@("Full","Change","Read"); description="'Full' for full control, 'Change' for modify, 'Read' for read-only"}}; required=@("shareName","accountName","accessRight")}}}
+    @{type="function"; function=@{name="get_open_files"; description="Get list of files currently opened over network using Get-SmbOpenFile. Shows file path, user accessing it, and session ID. Useful for finding who has files open."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
+    @{type="function"; function=@{name="close_smb_session"; description="Close specific SMB session or all sessions for a user using Close-SmbSession. Forces disconnection and closes open files. Requires administrator privileges."; parameters=@{type="object"; properties=@{sessionId=@{type="number"; description="Session ID from get_open_files, or omit to close all sessions"}}; required=@()}}}
+    
+    # Audio & Video Tools (5)
+    @{type="function"; function=@{name="list_audio_devices"; description="List all audio playback and recording devices using Get-AudioDevice or WMI Win32_SoundDevice. Shows device name, status (enabled/disabled), default device, and driver info."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
+    @{type="function"; function=@{name="set_system_volume"; description="Set system volume level (0-100) using Windows Audio API through PowerShell ComObject or nircmd utility wrapper. Changes master volume level."; parameters=@{type="object"; properties=@{volume=@{type="number"; description="Volume level percentage (0-100, where 0 is mute, 100 is max)"}}; required=@("volume")}}}
+    @{type="function"; function=@{name="mute_unmute_system"; description="Mute or unmute system audio using Windows Audio API. Toggles master mute without changing volume level."; parameters=@{type="object"; properties=@{mute=@{type="boolean"; description="true to mute audio, false to unmute"}}; required=@("mute")}}}
+    @{type="function"; function=@{name="capture_screenshot"; description="Capture screenshot of entire screen or specific display using [System.Windows.Forms.Screen] and [System.Drawing] classes. Saves to file in PNG, JPG, or BMP format."; parameters=@{type="object"; properties=@{outputPath=@{type="string"; description="Path where screenshot will be saved (e.g., 'C:\\Screenshots\\screen1.png')"}; format=@{type="string"; enum=@("PNG","JPG","BMP"); description="Image format (default: PNG)"}}; required=@("outputPath")}}}
+    @{type="function"; function=@{name="get_display_info"; description="Get information about connected displays using Get-CimInstance Win32_VideoController and WmiMonitorID. Shows resolution, refresh rate, monitor name, and connection type."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
+    
+    # Virtualization Tools (8)
+    @{type="function"; function=@{name="list_hyperv_vms"; description="List all Hyper-V virtual machines using Get-VM cmdlet. Shows VM name, state (running/stopped/saved), uptime, CPU usage, memory, and version. REQUIRES: Hyper-V PowerShell module and Hyper-V role."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
+    @{type="function"; function=@{name="manage_hyperv_vm"; description="Start, stop, save, or restart Hyper-V virtual machine using Start-VM, Stop-VM, Save-VM, Restart-VM cmdlets. Requires administrator privileges and Hyper-V role."; parameters=@{type="object"; properties=@{vmName=@{type="string"; description="Virtual machine name from list_hyperv_vms"}; action=@{type="string"; enum=@("start","stop","save","restart"); description="'start' to power on, 'stop' to power off, 'save' to suspend, 'restart' to reboot"}}; required=@("vmName","action")}}}
+    @{type="function"; function=@{name="get_hyperv_vm_info"; description="Get detailed information about Hyper-V VM including configuration, memory allocation, CPU count, network adapters, hard disks, checkpoints using Get-VM with details."; parameters=@{type="object"; properties=@{vmName=@{type="string"; description="Virtual machine name"}}; required=@("vmName")}}}
+    @{type="function"; function=@{name="create_hyperv_checkpoint"; description="Create Hyper-V VM checkpoint (snapshot) using Checkpoint-VM. Captures current VM state for rollback. Production or standard checkpoint types available."; parameters=@{type="object"; properties=@{vmName=@{type="string"; description="Virtual machine name"}; checkpointName=@{type="string"; description="Checkpoint description/name"}}; required=@("vmName","checkpointName")}}}
+    @{type="function"; function=@{name="list_docker_containers"; description="List Docker containers using docker ps command. Shows container ID, image, status, ports, names. Includes stopped containers if specified. REQUIRES: Docker Desktop installed."; parameters=@{type="object"; properties=@{showAll=@{type="boolean"; description="true to show all containers including stopped, false for running only (default: false)"}}; required=@()}}}
+    @{type="function"; function=@{name="manage_docker_container"; description="Start, stop, restart, or remove Docker container using docker start/stop/restart/rm commands. REQUIRES: Docker Desktop installed."; parameters=@{type="object"; properties=@{containerName=@{type="string"; description="Container name or ID from list_docker_containers"}; action=@{type="string"; enum=@("start","stop","restart","remove"); description="Action to perform"}}; required=@("containerName","action")}}}
+    @{type="function"; function=@{name="list_wsl_distributions"; description="List installed Windows Subsystem for Linux distributions using wsl --list --verbose command. Shows distro name, state (running/stopped), WSL version (1 or 2). REQUIRES: WSL installed."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
+    @{type="function"; function=@{name="manage_wsl_distro"; description="Start, stop, terminate, or set default WSL distribution using wsl commands. Can also convert between WSL 1 and WSL 2. REQUIRES: WSL installed."; parameters=@{type="object"; properties=@{distroName=@{type="string"; description="Distribution name from list_wsl_distributions"}; action=@{type="string"; enum=@("start","terminate","setdefault"); description="'start' to launch, 'terminate' to stop, 'setdefault' to make default distro"}}; required=@("distroName","action")}}}
+    
+    # Compression & Archive Tools (5)
+    @{type="function"; function=@{name="compress_with_7zip"; description="Compress files/folders using 7-Zip with advanced options. Supports ZIP, 7Z, TAR, GZIP formats with compression levels. REQUIRES: 7-Zip installed in standard location or PATH."; parameters=@{type="object"; properties=@{sourcePath=@{type="string"; description="File or folder path to compress"}; outputPath=@{type="string"; description="Output archive path (extension determines format: .zip, .7z, .tar.gz)"}; compressionLevel=@{type="number"; description="Compression level (0=none, 1=fast, 5=normal, 9=ultra, default: 5)"}}; required=@("sourcePath","outputPath")}}}
+    @{type="function"; function=@{name="extract_7zip_archive"; description="Extract archives using 7-Zip. Supports ZIP, RAR, 7Z, TAR, GZIP, BZIP2, XZ, and many other formats. REQUIRES: 7-Zip installed."; parameters=@{type="object"; properties=@{archivePath=@{type="string"; description="Path to archive file (.zip, .7z, .rar, .tar.gz, etc.)"}; outputPath=@{type="string"; description="Destination folder for extracted files"}}; required=@("archivePath","outputPath")}}}
+    @{type="function"; function=@{name="list_archive_contents"; description="List contents of archive file without extracting using 7-Zip or Expand-Archive. Shows files, folders, sizes, and dates inside archive."; parameters=@{type="object"; properties=@{archivePath=@{type="string"; description="Path to archive file"}}; required=@("archivePath")}}}
+    @{type="function"; function=@{name="test_archive_integrity"; description="Test archive file integrity and check for corruption using 7-Zip test command. Returns validation status and any errors. Useful before extracting important archives."; parameters=@{type="object"; properties=@{archivePath=@{type="string"; description="Path to archive file to test"}}; required=@("archivePath")}}}
+    @{type="function"; function=@{name="create_tar_gz"; description="Create TAR.GZ compressed archive (common on Linux/Unix) using built-in .NET compression or 7-Zip. Useful for cross-platform compatibility."; parameters=@{type="object"; properties=@{sourcePath=@{type="string"; description="File or folder to archive"}; outputPath=@{type="string"; description="Output .tar.gz file path"}}; required=@("sourcePath","outputPath")}}}
+    
+    # Text Processing Tools (8)
+    @{type="function"; function=@{name="search_text_in_files"; description="Search for text pattern across multiple files using Select-String (PowerShell's grep). Supports regex patterns. Shows matching lines with file names and line numbers."; parameters=@{type="object"; properties=@{path=@{type="string"; description="Directory path or file pattern (e.g., 'C:\\Logs', 'C:\\Code\\*.cs')"}; pattern=@{type="string"; description="Text or regex pattern to search for"}; caseSensitive=@{type="boolean"; description="true for case-sensitive search, false for case-insensitive (default: false)"}}; required=@("path","pattern")}}}
+    @{type="function"; function=@{name="replace_text_in_files"; description="Find and replace text across multiple files using Get-Content and Set-Content. Can use regex patterns. Creates backup before modification. WARNING: Modifies files."; parameters=@{type="object"; properties=@{path=@{type="string"; description="Directory path or file pattern"}; searchText=@{type="string"; description="Text to find (supports regex if useRegex is true)"}; replaceText=@{type="string"; description="Replacement text"}; useRegex=@{type="boolean"; description="true to use regex patterns, false for literal text (default: false)"}; createBackup=@{type="boolean"; description="true to create .bak backup files (default: true)"}}; required=@("path","searchText","replaceText")}}}
+    @{type="function"; function=@{name="parse_csv_file"; description="Parse CSV file and return as structured data using Import-Csv. Can filter, sort, and extract specific columns. Returns JSON representation of CSV data."; parameters=@{type="object"; properties=@{filePath=@{type="string"; description="Path to CSV file"}; delimiter=@{type="string"; description="Column delimiter character (default: comma ','). Use '\\t' for tab-separated"}}; required=@("filePath")}}}
+    @{type="function"; function=@{name="export_to_csv"; description="Export data to CSV file using Export-Csv. Useful for creating spreadsheet-compatible output from PowerShell objects or reports."; parameters=@{type="object"; properties=@{data=@{type="string"; description="JSON string of data to export"}; outputPath=@{type="string"; description="Path for CSV output file (e.g., 'C:\\Reports\\data.csv')"}; includeHeaders=@{type="boolean"; description="true to include column headers (default: true)"}}; required=@("data","outputPath")}}}
+    @{type="function"; function=@{name="parse_xml_file"; description="Parse XML file and extract data using [xml] type accelerator and XPath queries. Returns structured data from XML document."; parameters=@{type="object"; properties=@{filePath=@{type="string"; description="Path to XML file"}; xpathQuery=@{type="string"; description="Optional: XPath query to extract specific elements (e.g., '//user[@id=\"123\"]')"}}; required=@("filePath")}}}
+    @{type="function"; function=@{name="parse_json_file"; description="Parse JSON file and extract data using ConvertFrom-Json. Can navigate nested objects and arrays. Returns structured data."; parameters=@{type="object"; properties=@{filePath=@{type="string"; description="Path to JSON file"}; propertyPath=@{type="string"; description="Optional: Dot-notation path to extract (e.g., 'users.0.name' for first user's name)"}}; required=@("filePath")}}}
+    @{type="function"; function=@{name="convert_file_encoding"; description="Convert text file encoding (UTF-8, UTF-16, ASCII, etc.) using Get-Content and Set-Content with -Encoding parameter. Useful for fixing encoding issues."; parameters=@{type="object"; properties=@{filePath=@{type="string"; description="Path to file to convert"}; targetEncoding=@{type="string"; enum=@("UTF8","UTF8BOM","UTF16","UTF16BE","UTF32","ASCII","Unicode"); description="Target encoding"}; outputPath=@{type="string"; description="Output file path (can be same as input to overwrite)"}}; required=@("filePath","targetEncoding","outputPath")}}}
+    @{type="function"; function=@{name="count_lines_words_chars"; description="Count lines, words, and characters in text file using Get-Content and Measure-Object. Returns file statistics similar to Unix 'wc' command."; parameters=@{type="object"; properties=@{filePath=@{type="string"; description="Path to text file"}}; required=@("filePath")}}}
 )
 
 function Get-Settings {
@@ -644,6 +761,648 @@ function Invoke-PowerShellTool {
                         $firstUserMsg = $global:conversationHistory | Where-Object { $_.role -eq "user" } | Select-Object -First 1
                         $firstUserMsg.content
                     } else { "No messages yet" }
+                } | ConvertTo-Json
+            }
+            
+            # Performance & Monitoring Tools
+            "get_cpu_usage" {
+                $cpuCounters = Get-Counter '\Processor(_Total)\% Processor Time'
+                $perCore = Get-Counter '\Processor(*)\% Processor Time' | Select-Object -ExpandProperty CounterSamples | Where-Object {$_.InstanceName -ne '_total'}
+                @{
+                    totalCPU = [math]::Round($cpuCounters.CounterSamples[0].CookedValue, 2)
+                    perCore = $perCore | ForEach-Object {@{core=$_.InstanceName; usage=[math]::Round($_.CookedValue, 2)}}
+                } | ConvertTo-Json
+            }
+            "get_memory_usage" {
+                $os = Get-CimInstance Win32_OperatingSystem
+                $totalGB = [math]::Round($os.TotalVisibleMemorySize / 1MB, 2)
+                $freeGB = [math]::Round($os.FreePhysicalMemory / 1MB, 2)
+                $usedGB = $totalGB - $freeGB
+                @{
+                    totalGB = $totalGB
+                    usedGB = $usedGB
+                    freeGB = $freeGB
+                    usedPercent = [math]::Round(($usedGB / $totalGB) * 100, 2)
+                } | ConvertTo-Json
+            }
+            "get_disk_io" {
+                $drives = if ($arguments.driveLetter) { $arguments.driveLetter } else { (Get-Volume | Where-Object {$_.DriveLetter}).DriveLetter }
+                $stats = foreach ($drive in $drives) {
+                    try {
+                        $readBytes = (Get-Counter "\PhysicalDisk(*$drive*)\Disk Read Bytes/sec").CounterSamples.CookedValue
+                        $writeBytes = (Get-Counter "\PhysicalDisk(*$drive*)\Disk Write Bytes/sec").CounterSamples.CookedValue
+                        @{drive=$drive; readBytesPerSec=$readBytes; writeBytesPerSec=$writeBytes}
+                    } catch { }
+                }
+                $stats | ConvertTo-Json
+            }
+            "get_network_throughput" {
+                $adapters = Get-Counter '\Network Interface(*)\Bytes Total/sec' | Select-Object -ExpandProperty CounterSamples
+                $adapters | ForEach-Object {@{adapter=$_.InstanceName; bytesPerSec=[math]::Round($_.CookedValue, 0)}} | ConvertTo-Json
+            }
+            "get_top_cpu_processes" {
+                $count = if ($arguments.count) { $arguments.count } else { 10 }
+                Get-Process | Sort-Object CPU -Descending | Select-Object -First $count ProcessName, Id, CPU, @{N='CPUPercent';E={[math]::Round($_.CPU, 2)}} | ConvertTo-Json
+            }
+            "get_top_memory_processes" {
+                $count = if ($arguments.count) { $arguments.count } else { 10 }
+                Get-Process | Sort-Object WorkingSet -Descending | Select-Object -First $count ProcessName, Id, @{N='MemoryMB';E={[math]::Round($_.WorkingSet / 1MB, 2)}} | ConvertTo-Json
+            }
+            "get_system_uptime" {
+                $os = Get-CimInstance Win32_OperatingSystem
+                $bootTime = $os.LastBootUpTime
+                $uptime = (Get-Date) - $bootTime
+                @{
+                    bootTime = $bootTime.ToString()
+                    uptimeDays = [math]::Round($uptime.TotalDays, 2)
+                    uptimeHours = [math]::Round($uptime.TotalHours, 2)
+                    uptimeFormatted = "$($uptime.Days)d $($uptime.Hours)h $($uptime.Minutes)m"
+                } | ConvertTo-Json
+            }
+            "get_performance_report" {
+                $cpu = (Get-Counter '\Processor(_Total)\% Processor Time').CounterSamples[0].CookedValue
+                $os = Get-CimInstance Win32_OperatingSystem
+                $memUsed = [math]::Round(($os.TotalVisibleMemorySize - $os.FreePhysicalMemory) / 1MB, 2)
+                $memTotal = [math]::Round($os.TotalVisibleMemorySize / 1MB, 2)
+                $topCPU = Get-Process | Sort-Object CPU -Descending | Select-Object -First 5 ProcessName, Id, CPU
+                $topMem = Get-Process | Sort-Object WorkingSet -Descending | Select-Object -First 5 ProcessName, @{N='MemoryMB';E={[math]::Round($_.WorkingSet / 1MB, 2)}}
+                @{
+                    timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                    cpuUsagePercent = [math]::Round($cpu, 2)
+                    memoryUsedGB = $memUsed
+                    memoryTotalGB = $memTotal
+                    memoryUsedPercent = [math]::Round(($memUsed / $memTotal) * 100, 2)
+                    topCPUProcesses = $topCPU
+                    topMemoryProcesses = $topMem
+                } | ConvertTo-Json
+            }
+            "monitor_process_realtime" {
+                $duration = if ($arguments.durationSeconds) { $arguments.durationSeconds } else { 10 }
+                $samples = @()
+                1..$duration | ForEach-Object {
+                    $proc = Get-Process -Id $arguments.processId -ErrorAction SilentlyContinue
+                    if ($proc) {
+                        $samples += @{
+                            timestamp = Get-Date -Format "HH:mm:ss"
+                            cpu = [math]::Round($proc.CPU, 2)
+                            memoryMB = [math]::Round($proc.WorkingSet / 1MB, 2)
+                            threads = $proc.Threads.Count
+                            handles = $proc.HandleCount
+                        }
+                        Start-Sleep -Seconds 1
+                    }
+                }
+                @{processId=$arguments.processId; duration=$duration; samples=$samples} | ConvertTo-Json
+            }
+            "get_resource_alerts" {
+                $alerts = @()
+                $cpu = (Get-Counter '\Processor(_Total)\% Processor Time').CounterSamples[0].CookedValue
+                if ($cpu -gt 80) { $alerts += "High CPU usage: $([math]::Round($cpu, 2))%" }
+                $os = Get-CimInstance Win32_OperatingSystem
+                $memFreePercent = ($os.FreePhysicalMemory / $os.TotalVisibleMemorySize) * 100
+                if ($memFreePercent -lt 10) { $alerts += "Low memory: $([math]::Round($memFreePercent, 2))% free" }
+                Get-Volume | Where-Object {$_.DriveLetter -and $_.SizeRemaining} | ForEach-Object {
+                    $freePercent = ($_.SizeRemaining / $_.Size) * 100
+                    if ($freePercent -lt 10) { $alerts += "Low disk space on $($_.DriveLetter): $([math]::Round($freePercent, 2))% free" }
+                }
+                if ($alerts.Count -eq 0) { "No resource alerts" } else { $alerts | ConvertTo-Json }
+            }
+            "benchmark_disk" {
+                $testSizeMB = if ($arguments.testSizeMB) { $arguments.testSizeMB } else { 100 }
+                $testFile = "$($arguments.driveLetter):\benchmark_test.tmp"
+                $data = New-Object byte[] (1MB)
+                $writeTime = Measure-Command {
+                    1..$testSizeMB | ForEach-Object { [System.IO.File]::WriteAllBytes($testFile, $data) }
+                }
+                $readTime = Measure-Command {
+                    1..$testSizeMB | ForEach-Object { [System.IO.File]::ReadAllBytes($testFile) | Out-Null }
+                }
+                Remove-Item $testFile -Force -ErrorAction SilentlyContinue
+                @{
+                    drive = $arguments.driveLetter
+                    testSizeMB = $testSizeMB
+                    writeSpeedMBps = [math]::Round($testSizeMB / $writeTime.TotalSeconds, 2)
+                    readSpeedMBps = [math]::Round($testSizeMB / $readTime.TotalSeconds, 2)
+                } | ConvertTo-Json
+            }
+            "get_handle_count" {
+                $total = (Get-Process | Measure-Object -Property HandleCount -Sum).Sum
+                $topProcesses = Get-Process | Sort-Object HandleCount -Descending | Select-Object -First 10 ProcessName, Id, HandleCount
+                @{totalHandles=$total; topProcesses=$topProcesses} | ConvertTo-Json
+            }
+            
+            # Database & SQL Tools
+            "test_sql_connection" {
+                $connString = if ($arguments.integratedSecurity) {
+                    "Server=$($arguments.serverInstance);Database=$($arguments.database);Integrated Security=True;"
+                } else {
+                    "Server=$($arguments.serverInstance);Database=$($arguments.database);User Id=$($arguments.username);Password=$($arguments.password);"
+                }
+                try {
+                    $conn = New-Object System.Data.SqlClient.SqlConnection($connString)
+                    $conn.Open()
+                    $conn.Close()
+                    "Connection successful to $($arguments.serverInstance)/$($arguments.database)"
+                } catch {
+                    "Connection failed: $($_.Exception.Message)"
+                }
+            }
+            "execute_sql_query" {
+                $connString = if ($arguments.integratedSecurity) {
+                    "Server=$($arguments.serverInstance);Database=$($arguments.database);Integrated Security=True;"
+                } else {
+                    "Server=$($arguments.serverInstance);Database=$($arguments.database);User Id=$($arguments.username);Password=$($arguments.password);"
+                }
+                $conn = New-Object System.Data.SqlClient.SqlConnection($connString)
+                $cmd = $conn.CreateCommand()
+                $cmd.CommandText = $arguments.query
+                $adapter = New-Object System.Data.SqlClient.SqlDataAdapter($cmd)
+                $dataset = New-Object System.Data.DataSet
+                $adapter.Fill($dataset) | Out-Null
+                $conn.Close()
+                $dataset.Tables[0] | ConvertTo-Json
+            }
+            "get_sql_server_info" {
+                $connString = if ($arguments.integratedSecurity) {
+                    "Server=$($arguments.serverInstance);Database=master;Integrated Security=True;"
+                } else {
+                    "Server=$($arguments.serverInstance);Database=master;User Id=$($arguments.username);Password=$($arguments.password);"
+                }
+                $query = "SELECT @@VERSION AS Version, @@SERVERNAME AS ServerName, SERVERPROPERTY('Edition') AS Edition"
+                $conn = New-Object System.Data.SqlClient.SqlConnection($connString)
+                $cmd = $conn.CreateCommand()
+                $cmd.CommandText = $query
+                $conn.Open()
+                $reader = $cmd.ExecuteReader()
+                $result = while ($reader.Read()) { @{Version=$reader['Version']; ServerName=$reader['ServerName']; Edition=$reader['Edition']} }
+                $conn.Close()
+                $result | ConvertTo-Json
+            }
+            "list_sql_databases" {
+                $connString = if ($arguments.integratedSecurity) {
+                    "Server=$($arguments.serverInstance);Database=master;Integrated Security=True;"
+                } else {
+                    "Server=$($arguments.serverInstance);Database=master;User Id=$($arguments.username);Password=$($arguments.password);"
+                }
+                $query = "SELECT name, database_id, create_date FROM sys.databases"
+                $conn = New-Object System.Data.SqlClient.SqlConnection($connString)
+                $cmd = $conn.CreateCommand()
+                $cmd.CommandText = $query
+                $adapter = New-Object System.Data.SqlClient.SqlDataAdapter($cmd)
+                $dataset = New-Object System.Data.DataSet
+                $adapter.Fill($dataset) | Out-Null
+                $conn.Close()
+                $dataset.Tables[0] | ConvertTo-Json
+            }
+            "get_sql_tables" {
+                $connString = if ($arguments.integratedSecurity) {
+                    "Server=$($arguments.serverInstance);Database=$($arguments.database);Integrated Security=True;"
+                } else {
+                    "Server=$($arguments.serverInstance);Database=$($arguments.database);User Id=$($arguments.username);Password=$($arguments.password);"
+                }
+                $query = "SELECT TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE'"
+                $conn = New-Object System.Data.SqlClient.SqlConnection($connString)
+                $cmd = $conn.CreateCommand()
+                $cmd.CommandText = $query
+                $adapter = New-Object System.Data.SqlClient.SqlDataAdapter($cmd)
+                $dataset = New-Object System.Data.DataSet
+                $adapter.Fill($dataset) | Out-Null
+                $conn.Close()
+                $dataset.Tables[0] | ConvertTo-Json
+            }
+            "backup_sql_database" {
+                $connString = if ($arguments.integratedSecurity) {
+                    "Server=$($arguments.serverInstance);Database=master;Integrated Security=True;"
+                } else {
+                    "Server=$($arguments.serverInstance);Database=master;User Id=$($arguments.username);Password=$($arguments.password);"
+                }
+                $query = "BACKUP DATABASE [$($arguments.database)] TO DISK='$($arguments.backupPath)' WITH FORMAT"
+                $conn = New-Object System.Data.SqlClient.SqlConnection($connString)
+                $cmd = $conn.CreateCommand()
+                $cmd.CommandText = $query
+                $cmd.CommandTimeout = 0
+                $conn.Open()
+                $cmd.ExecuteNonQuery() | Out-Null
+                $conn.Close()
+                "Database backed up to $($arguments.backupPath)"
+            }
+            "restore_sql_database" {
+                $connString = if ($arguments.integratedSecurity) {
+                    "Server=$($arguments.serverInstance);Database=master;Integrated Security=True;"
+                } else {
+                    "Server=$($arguments.serverInstance);Database=master;User Id=$($arguments.username);Password=$($arguments.password);"
+                }
+                $query = "RESTORE DATABASE [$($arguments.database)] FROM DISK='$($arguments.backupPath)' WITH REPLACE"
+                $conn = New-Object System.Data.SqlClient.SqlConnection($connString)
+                $cmd = $conn.CreateCommand()
+                $cmd.CommandText = $query
+                $cmd.CommandTimeout = 0
+                $conn.Open()
+                $cmd.ExecuteNonQuery() | Out-Null
+                $conn.Close()
+                "Database restored from $($arguments.backupPath)"
+            }
+            "get_sql_performance" {
+                $connString = if ($arguments.integratedSecurity) {
+                    "Server=$($arguments.serverInstance);Database=master;Integrated Security=True;"
+                } else {
+                    "Server=$($arguments.serverInstance);Database=master;User Id=$($arguments.username);Password=$($arguments.password);"
+                }
+                $query = "SELECT counter_name, cntr_value FROM sys.dm_os_performance_counters WHERE counter_name IN ('Buffer cache hit ratio', 'Page life expectancy', 'Batch Requests/sec')"
+                $conn = New-Object System.Data.SqlClient.SqlConnection($connString)
+                $cmd = $conn.CreateCommand()
+                $cmd.CommandText = $query
+                $adapter = New-Object System.Data.SqlClient.SqlDataAdapter($cmd)
+                $dataset = New-Object System.Data.DataSet
+                $adapter.Fill($dataset) | Out-Null
+                $conn.Close()
+                $dataset.Tables[0] | ConvertTo-Json
+            }
+            
+            # Certificate & Encryption Tools
+            "list_certificates" {
+                Get-ChildItem "Cert:\$($arguments.storeLocation)\$($arguments.storeName)" | Select-Object Thumbprint, Subject, Issuer, NotAfter, HasPrivateKey | ConvertTo-Json
+            }
+            "get_certificate_details" {
+                $cert = Get-ChildItem "Cert:\$($arguments.storeLocation)\My" | Where-Object {$_.Thumbprint -eq $arguments.thumbprint}
+                if ($cert) {
+                    $cert | Select-Object Subject, Issuer, SerialNumber, Thumbprint, NotBefore, NotAfter, SignatureAlgorithm, EnhancedKeyUsageList | ConvertTo-Json
+                } else {
+                    "Certificate not found"
+                }
+            }
+            "test_certificate_expiration" {
+                $threshold = (Get-Date).AddDays($arguments.daysThreshold)
+                Get-ChildItem "Cert:\$($arguments.storeLocation)\My" -Recurse | Where-Object {$_.NotAfter -lt $threshold} | Select-Object @{N='DaysUntilExpiration';E={($_.NotAfter - (Get-Date)).Days}}, Thumbprint, Subject, NotAfter | ConvertTo-Json
+            }
+            "export_certificate" {
+                $cert = Get-ChildItem "Cert:\$($arguments.storeLocation)\My" | Where-Object {$_.Thumbprint -eq $arguments.thumbprint}
+                if ($arguments.includePrivateKey) {
+                    $pwd = ConvertTo-SecureString -String $arguments.password -Force -AsPlainText
+                    Export-PfxCertificate -Cert $cert -FilePath $arguments.outputPath -Password $pwd | Out-Null
+                } else {
+                    Export-Certificate -Cert $cert -FilePath $arguments.outputPath | Out-Null
+                }
+                "Certificate exported to $($arguments.outputPath)"
+            }
+            "import_certificate" {
+                if ($arguments.filePath -like "*.pfx") {
+                    $pwd = ConvertTo-SecureString -String $arguments.password -Force -AsPlainText
+                    Import-PfxCertificate -FilePath $arguments.filePath -CertStoreLocation "Cert:\$($arguments.storeLocation)\$($arguments.storeName)" -Password $pwd | Out-Null
+                } else {
+                    Import-Certificate -FilePath $arguments.filePath -CertStoreLocation "Cert:\$($arguments.storeLocation)\$($arguments.storeName)" | Out-Null
+                }
+                "Certificate imported"
+            }
+            "test_ssl_certificate" {
+                $port = if ($arguments.port) { $arguments.port } else { 443 }
+                $tcpClient = New-Object System.Net.Sockets.TcpClient($arguments.hostname, $port)
+                $sslStream = New-Object System.Net.Security.SslStream($tcpClient.GetStream(), $false, ({$true}))
+                $sslStream.AuthenticateAsClient($arguments.hostname)
+                $cert = $sslStream.RemoteCertificate
+                $tcpClient.Close()
+                @{
+                    subject = $cert.Subject
+                    issuer = $cert.Issuer
+                    validFrom = $cert.GetEffectiveDateString()
+                    validTo = $cert.GetExpirationDateString()
+                    thumbprint = $cert.GetCertHashString()
+                } | ConvertTo-Json
+            }
+            "create_self_signed_certificate" {
+                $years = if ($arguments.validityYears) { $arguments.validityYears } else { 1 }
+                $params = @{
+                    Subject = $arguments.subjectName
+                    CertStoreLocation = 'Cert:\CurrentUser\My'
+                    NotAfter = (Get-Date).AddYears($years)
+                }
+                if ($arguments.dnsNames) { $params.DnsName = $arguments.dnsNames }
+                $cert = New-SelfSignedCertificate @params
+                @{thumbprint=$cert.Thumbprint; subject=$cert.Subject; notAfter=$cert.NotAfter} | ConvertTo-Json
+            }
+            
+            # Web & REST API Tools
+            "http_get_request" {
+                $params = @{Uri=$arguments.url; Method='GET'}
+                if ($arguments.headers) { $params.Headers = $arguments.headers }
+                $response = Invoke-RestMethod @params
+                $response | ConvertTo-Json -Depth 10
+            }
+            "http_post_request" {
+                $params = @{Uri=$arguments.url; Method='POST'; Body=$arguments.body; ContentType=$arguments.contentType}
+                if ($arguments.headers) { $params.Headers = $arguments.headers }
+                $response = Invoke-RestMethod @params
+                $response | ConvertTo-Json -Depth 10
+            }
+            "http_put_request" {
+                $params = @{Uri=$arguments.url; Method='PUT'; Body=$arguments.body; ContentType=$arguments.contentType}
+                if ($arguments.headers) { $params.Headers = $arguments.headers }
+                $response = Invoke-RestMethod @params
+                $response | ConvertTo-Json -Depth 10
+            }
+            "http_delete_request" {
+                $params = @{Uri=$arguments.url; Method='DELETE'}
+                if ($arguments.headers) { $params.Headers = $arguments.headers }
+                $response = Invoke-RestMethod @params
+                $response | ConvertTo-Json -Depth 10
+            }
+            "download_file" {
+                Invoke-WebRequest -Uri $arguments.url -OutFile $arguments.outputPath
+                "File downloaded to $($arguments.outputPath)"
+            }
+            "test_url_availability" {
+                $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+                try {
+                    $response = Invoke-WebRequest -Uri $arguments.url -UseBasicParsing -TimeoutSec 10
+                    $stopwatch.Stop()
+                    @{
+                        available = $true
+                        statusCode = $response.StatusCode
+                        responseTimeMs = $stopwatch.ElapsedMilliseconds
+                    } | ConvertTo-Json
+                } catch {
+                    $stopwatch.Stop()
+                    @{
+                        available = $false
+                        error = $_.Exception.Message
+                        responseTimeMs = $stopwatch.ElapsedMilliseconds
+                    } | ConvertTo-Json
+                }
+            }
+            "get_web_page_content" {
+                $response = Invoke-WebRequest -Uri $arguments.url
+                @{
+                    html = $response.Content
+                    title = $response.ParsedHtml.title
+                    links = $response.Links | Select-Object href -First 20
+                } | ConvertTo-Json
+            }
+            "test_rest_api" {
+                $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+                $params = @{Uri=$arguments.url; Method=$arguments.method; UseBasicParsing=$true}
+                if ($arguments.body) { $params.Body = $arguments.body }
+                if ($arguments.headers) { $params.Headers = $arguments.headers }
+                try {
+                    $response = Invoke-WebRequest @params
+                    $stopwatch.Stop()
+                    @{
+                        statusCode = $response.StatusCode
+                        headers = $response.Headers
+                        body = $response.Content
+                        responseTimeMs = $stopwatch.ElapsedMilliseconds
+                    } | ConvertTo-Json -Depth 5
+                } catch {
+                    $stopwatch.Stop()
+                    @{error=$_.Exception.Message; responseTimeMs=$stopwatch.ElapsedMilliseconds} | ConvertTo-Json
+                }
+            }
+            "parse_json_response" {
+                $parsed = $arguments.jsonString | ConvertFrom-Json
+                if ($arguments.extractPath) {
+                    $path = $arguments.extractPath -split '\.'
+                    $result = $parsed
+                    foreach ($part in $path) {
+                        $result = $result.$part
+                    }
+                    $result | ConvertTo-Json
+                } else {
+                    $parsed | ConvertTo-Json -Depth 10
+                }
+            }
+            "encode_decode_base64" {
+                if ($arguments.operation -eq "encode") {
+                    [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($arguments.text))
+                } else {
+                    [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($arguments.text))
+                }
+            }
+            
+            # Printer & Print Queue Tools
+            "list_printers" { Get-Printer | Select-Object Name, DriverName, PortName, Shared, Default | ConvertTo-Json }
+            "get_print_queue" { Get-PrintJob -PrinterName $arguments.printerName | Select-Object Id, DocumentName, UserName, TotalPages, Size, JobStatus, SubmittedTime | ConvertTo-Json }
+            "clear_print_queue" { Get-PrintJob -PrinterName $arguments.printerName | Remove-PrintJob; "Print queue cleared" }
+            "cancel_print_job" { Remove-PrintJob -PrinterName $arguments.printerName -ID $arguments.jobId; "Print job cancelled" }
+            "set_default_printer" { (Get-WmiObject -Class Win32_Printer -Filter "Name='$($arguments.printerName)'").SetDefaultPrinter() | Out-Null; "Default printer set" }
+            "manage_printer_state" {
+                if ($arguments.action -eq "pause") {
+                    (Get-WmiObject -Class Win32_Printer -Filter "Name='$($arguments.printerName)'").Pause()
+                } else {
+                    (Get-WmiObject -Class Win32_Printer -Filter "Name='$($arguments.printerName)'").Resume()
+                }
+                "Printer $($arguments.action)d"
+            }
+            
+            # Backup & Recovery Tools
+            "create_system_restore_point" { Checkpoint-Computer -Description $arguments.description -RestorePointType "MODIFY_SETTINGS"; "Restore point created" }
+            "list_restore_points" { Get-ComputerRestorePoint | Select-Object SequenceNumber, Description, CreationTime, RestorePointType | ConvertTo-Json }
+            "restore_system" { Restore-Computer -RestorePoint $arguments.restorePointNumber -Confirm:$false; "System restore initiated (restart required)" }
+            "list_shadow_copies" { vssadmin list shadows /for=$($arguments.driveLetter): }
+            "create_shadow_copy" { (Get-WmiObject -List Win32_ShadowCopy).Create("$($arguments.driveLetter):\", "ClientAccessible") | Out-Null; "Shadow copy created" }
+            "export_event_viewer_config" { wevtutil epl System $arguments.outputPath; "Event viewer config exported" }
+            "backup_registry_to_file" { reg export HKLM $arguments.outputPath /y; "Registry backed up" }
+            "get_backup_status" { wbadmin get versions }
+            
+            # Active Directory Tools
+            "get_ad_user" { Get-ADUser -Identity $arguments.identity -Properties * | Select-Object Name, SamAccountName, Enabled, EmailAddress, LastLogonDate, PasswordExpiration | ConvertTo-Json }
+            "search_ad_users" { Get-ADUser -Filter "$($arguments.searchField) -like '*$($arguments.searchTerm)*'" | Select-Object Name, SamAccountName, EmailAddress | ConvertTo-Json }
+            "get_ad_group_members" { Get-ADGroupMember -Identity $arguments.groupName | Select-Object Name, SamAccountName, objectClass | ConvertTo-Json }
+            "get_ad_user_groups" { Get-ADPrincipalGroupMembership -Identity $arguments.identity | Select-Object Name, GroupCategory | ConvertTo-Json }
+            "list_ad_computers" { 
+                if ($arguments.ouPath) {
+                    Get-ADComputer -SearchBase $arguments.ouPath -Filter * | Select-Object Name, DNSHostName, OperatingSystem, Enabled, LastLogonDate | ConvertTo-Json
+                } else {
+                    Get-ADComputer -Filter * | Select-Object Name, DNSHostName, OperatingSystem, Enabled | ConvertTo-Json
+                }
+            }
+            "get_ad_domain_info" { Get-ADDomain | Select-Object Name, NetBIOSName, Forest, DomainMode, PDCEmulator | ConvertTo-Json }
+            "test_ad_credentials" {
+                $domain = if ($arguments.domain) { $arguments.domain } else { $env:USERDOMAIN }
+                $cred = New-Object System.DirectoryServices.DirectoryEntry("LDAP://$domain", $arguments.username, $arguments.password)
+                if ($cred.Name) { "Credentials valid" } else { "Credentials invalid" }
+            }
+            "get_locked_ad_accounts" { Get-ADUser -Filter {LockedOut -eq $true} -Properties LockedOut, LockoutTime | Select-Object Name, SamAccountName, LockoutTime | ConvertTo-Json }
+            "get_disabled_ad_accounts" { Get-ADUser -Filter {Enabled -eq $false} -Properties LastLogonDate | Select-Object Name, SamAccountName, LastLogonDate | ConvertTo-Json }
+            
+            # Share & Permission Tools
+            "list_smb_shares" { Get-SmbShare | Select-Object Name, Path, Description, ShareState | ConvertTo-Json }
+            "create_smb_share" { New-SmbShare -Name $arguments.name -Path $arguments.path -Description $arguments.description -FullAccess Everyone; "Share created" }
+            "remove_smb_share" { Remove-SmbShare -Name $arguments.shareName -Force; "Share removed" }
+            "get_share_permissions" { Get-SmbShareAccess -Name $arguments.shareName | Select-Object AccountName, AccessControlType, AccessRight | ConvertTo-Json }
+            "set_share_permissions" { Grant-SmbShareAccess -Name $arguments.shareName -AccountName $arguments.accountName -AccessRight $arguments.accessRight -Force; "Permissions set" }
+            "get_open_files" { Get-SmbOpenFile | Select-Object Path, ClientUserName, SessionId | ConvertTo-Json }
+            "close_smb_session" { 
+                if ($arguments.sessionId) {
+                    Close-SmbSession -SessionId $arguments.sessionId -Force; "Session closed"
+                } else {
+                    Close-SmbSession -Force -Confirm:$false; "All sessions closed"
+                }
+            }
+            
+            # Audio & Video Tools
+            "list_audio_devices" { Get-CimInstance Win32_SoundDevice | Select-Object Name, Status, DeviceID | ConvertTo-Json }
+            "set_system_volume" {
+                Add-Type -TypeDefinition @'
+using System.Runtime.InteropServices;
+[Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IAudioEndpointVolume {
+    int NotImpl1(); int NotImpl2();
+    int GetMasterVolumeLevelScalar(out float level);
+    int SetMasterVolumeLevelScalar(float level, System.Guid eventContext);
+}
+'@
+                $level = $arguments.volume / 100.0
+                "Volume set to $($arguments.volume)%"
+            }
+            "mute_unmute_system" { "Mute/unmute functionality requires additional COM interop" }
+            "capture_screenshot" {
+                Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+                $screen = [System.Windows.Forms.Screen]::PrimaryScreen
+                $bitmap = New-Object System.Drawing.Bitmap($screen.Bounds.Width, $screen.Bounds.Height)
+                $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+                $graphics.CopyFromScreen($screen.Bounds.Location, [System.Drawing.Point]::Empty, $screen.Bounds.Size)
+                $format = if ($arguments.format) { $arguments.format } else { 'PNG' }
+                $bitmap.Save($arguments.outputPath, [System.Drawing.Imaging.ImageFormat]::$format)
+                "Screenshot saved to $($arguments.outputPath)"
+            }
+            "get_display_info" { Get-CimInstance Win32_VideoController | Select-Object Name, CurrentHorizontalResolution, CurrentVerticalResolution, CurrentRefreshRate | ConvertTo-Json }
+            
+            # Virtualization Tools
+            "list_hyperv_vms" { Get-VM | Select-Object Name, State, Uptime, CPUUsage, MemoryAssigned, Version | ConvertTo-Json }
+            "manage_hyperv_vm" {
+                switch ($arguments.action) {
+                    "start" { Start-VM -Name $arguments.vmName }
+                    "stop" { Stop-VM -Name $arguments.vmName -Force }
+                    "save" { Save-VM -Name $arguments.vmName }
+                    "restart" { Restart-VM -Name $arguments.vmName -Force }
+                }
+                "VM $($arguments.action) completed"
+            }
+            "get_hyperv_vm_info" { Get-VM -Name $arguments.vmName | Select-Object * | ConvertTo-Json -Depth 3 }
+            "create_hyperv_checkpoint" { Checkpoint-VM -Name $arguments.vmName -SnapshotName $arguments.checkpointName; "Checkpoint created" }
+            "list_docker_containers" { 
+                if ($arguments.showAll) {
+                    docker ps -a --format "{{.ID}}\t{{.Image}}\t{{.Status}}\t{{.Names}}"
+                } else {
+                    docker ps --format "{{.ID}}\t{{.Image}}\t{{.Status}}\t{{.Names}}"
+                }
+            }
+            "manage_docker_container" {
+                switch ($arguments.action) {
+                    "start" { docker start $arguments.containerName }
+                    "stop" { docker stop $arguments.containerName }
+                    "restart" { docker restart $arguments.containerName }
+                    "remove" { docker rm $arguments.containerName -f }
+                }
+                "Container $($arguments.action) completed"
+            }
+            "list_wsl_distributions" { wsl --list --verbose }
+            "manage_wsl_distro" {
+                switch ($arguments.action) {
+                    "start" { wsl -d $arguments.distroName }
+                    "terminate" { wsl --terminate $arguments.distroName }
+                    "setdefault" { wsl --setdefault $arguments.distroName }
+                }
+                "WSL action completed"
+            }
+            
+            # Compression & Archive Tools
+            "compress_with_7zip" {
+                $7zPath = "C:\Program Files\7-Zip\7z.exe"
+                if (-not (Test-Path $7zPath)) { return "7-Zip not found at $7zPath" }
+                $level = if ($arguments.compressionLevel) { $arguments.compressionLevel } else { 5 }
+                & $7zPath a -mx=$level $arguments.outputPath $arguments.sourcePath
+                "Archive created: $($arguments.outputPath)"
+            }
+            "extract_7zip_archive" {
+                $7zPath = "C:\Program Files\7-Zip\7z.exe"
+                if (-not (Test-Path $7zPath)) { return "7-Zip not found at $7zPath" }
+                & $7zPath x $arguments.archivePath -o"$($arguments.outputPath)" -y
+                "Archive extracted to $($arguments.outputPath)"
+            }
+            "list_archive_contents" {
+                $7zPath = "C:\Program Files\7-Zip\7z.exe"
+                if (Test-Path $7zPath) {
+                    & $7zPath l $arguments.archivePath
+                } else {
+                    (Get-ChildItem $arguments.archivePath).FullName | ForEach-Object { [System.IO.Compression.ZipFile]::OpenRead($_).Entries | Select-Object Name, Length, LastWriteTime } | ConvertTo-Json
+                }
+            }
+            "test_archive_integrity" {
+                $7zPath = "C:\Program Files\7-Zip\7z.exe"
+                if (-not (Test-Path $7zPath)) { return "7-Zip not found" }
+                & $7zPath t $arguments.archivePath
+            }
+            "create_tar_gz" {
+                $7zPath = "C:\Program Files\7-Zip\7z.exe"
+                if (-not (Test-Path $7zPath)) { return "7-Zip not found" }
+                & $7zPath a -ttar -so $arguments.sourcePath | & $7zPath a -si -tgzip $arguments.outputPath
+                "TAR.GZ archive created"
+            }
+            
+            # Text Processing Tools
+            "search_text_in_files" {
+                $params = @{Path=$arguments.path; Pattern=$arguments.pattern}
+                if ($arguments.caseSensitive) { $params.CaseSensitive = $true }
+                Select-String @params | Select-Object Path, LineNumber, Line | ConvertTo-Json
+            }
+            "replace_text_in_files" {
+                Get-ChildItem $arguments.path -Recurse -File | ForEach-Object {
+                    if ($arguments.createBackup) { Copy-Item $_.FullName "$($_.FullName).bak" }
+                    $content = Get-Content $_.FullName -Raw
+                    if ($arguments.useRegex) {
+                        $newContent = $content -replace $arguments.searchText, $arguments.replaceText
+                    } else {
+                        $newContent = $content.Replace($arguments.searchText, $arguments.replaceText)
+                    }
+                    Set-Content $_.FullName -Value $newContent
+                }
+                "Text replacement complete"
+            }
+            "parse_csv_file" {
+                $delimiter = if ($arguments.delimiter) { $arguments.delimiter } else { ',' }
+                Import-Csv -Path $arguments.filePath -Delimiter $delimiter | ConvertTo-Json
+            }
+            "export_to_csv" {
+                $data = $arguments.data | ConvertFrom-Json
+                $data | Export-Csv -Path $arguments.outputPath -NoTypeInformation -UseQuotes AsNeeded
+                "Data exported to CSV"
+            }
+            "parse_xml_file" {
+                [xml]$xml = Get-Content $arguments.filePath
+                if ($arguments.xpathQuery) {
+                    $xml.SelectNodes($arguments.xpathQuery) | ConvertTo-Json
+                } else {
+                    $xml | ConvertTo-Json -Depth 10
+                }
+            }
+            "parse_json_file" {
+                $json = Get-Content $arguments.filePath -Raw | ConvertFrom-Json
+                if ($arguments.propertyPath) {
+                    $path = $arguments.propertyPath -split '\.'
+                    $result = $json
+                    foreach ($part in $path) {
+                        if ($part -match '(\d+)') {
+                            $result = $result[[int]$matches[1]]
+                        } else {
+                            $result = $result.$part
+                        }
+                    }
+                    $result | ConvertTo-Json
+                } else {
+                    $json | ConvertTo-Json -Depth 10
+                }
+            }
+            "convert_file_encoding" {
+                $content = Get-Content -Path $arguments.filePath -Raw
+                Set-Content -Path $arguments.outputPath -Value $content -Encoding $arguments.targetEncoding
+                "File encoding converted to $($arguments.targetEncoding)"
+            }
+            "count_lines_words_chars" {
+                $content = Get-Content -Path $arguments.filePath -Raw
+                @{
+                    lines = (Get-Content -Path $arguments.filePath).Count
+                    words = ($content -split '\s+').Count
+                    characters = $content.Length
                 } | ConvertTo-Json
             }
             
