@@ -775,57 +775,7 @@ All core Windows management tools work without additional software.
 - **netsh advfirewall** - Windows Firewall configuration
 - **Group Policy equivalents** - All settings applied via registry/command-line (no GPO infrastructure required)
 
-## What's New in v2.3.0
 
-**Complete CIS Benchmark Implementation** - Added 421 tools for 100% coverage:
-- All 400 CIS Microsoft Windows 10/11 Benchmark v3.0.0 controls (Level 1 & Level 2)
-- 10 enhanced compliance reporting tools (audit reports, scoring, evidence packages)
-- Master baseline application tool with dry-run mode and rollback
-- Configuration export/import for backup and restore
-- Automated compliance monitoring with Task Scheduler integration
-- Executive summary generation for management/auditors
-
-**Enterprise Security Features:**
-- One-click system hardening (Level 1 or Level 2)
-- Comprehensive compliance reporting (JSON/HTML/Executive summaries)
-- Audit evidence package generation for SOC 2, ISO 27001, NIST compliance
-- Configuration drift detection and remediation planning
-- Pre-flight validation and post-hardening verification
-
-**Total Tool Count**: Expanded from 240 to 653 comprehensive tools
-
-## What's New in v2.0
-
-**Massive Tool Expansion** - Added 95+ new tools across 13 new categories:
-- Performance monitoring and system health diagnostics
-- Database and SQL Server management
-- SSL/TLS certificate operations
-- Web scraping and REST API testing
-- Printer and print queue management
-- System backup and recovery operations
-- Active Directory integration (RSAT)
-- Network share and permission auditing
-- Audio/video device control
-- Hyper-V, Docker, and WSL management
-- Advanced archive handling (7-Zip, TAR.GZ)
-- Text processing and file parsing (CSV, XML, JSON, regex)
-- Windows Imaging (WIM/DISM) - Full offline servicing capabilities
-
-**Total Tool Count**: Expanded from 145 to 240 comprehensive tools
-
-### WIM Management Use Cases
-- **Windows Deployment**: Customize installation media, inject drivers, add updates
-- **System Imaging**: Capture and restore complete system images
-- **Offline Servicing**: Modify Windows images without booting them
-- **Recovery Operations**: Create and apply system recovery images
-- **Driver Management**: Pre-inject drivers into installation media
-- **Multi-boot Setup**: Extract specific Windows editions from install.wim
-
-## Version History
-
-- **v2.3.0** (Current) - Complete CIS Benchmark implementation (653 tools, 100% coverage of 400 controls)
-- **v2.0** - Massive tool expansion (240 tools with 13 new categories)
-- **v1.0** - Initial release (145 base Windows management tools)
 
 ## License
 
