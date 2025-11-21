@@ -68,6 +68,8 @@ Add-Type -AssemblyName System.Windows.Forms
                     <ComboBoxItem Content="gpt-3.5-turbo"/>
                 </ComboBox>
                 
+                <Button Name="ClearHistoryBtn" Content="Clear Conversation History" Margin="0,10,0,0"/>
+                
                 <TextBlock Text="Custom Instructions:" Foreground="#d4d4d4" Margin="0,10,0,2"/>
                 <TextBox Name="InstructionsBox" Height="60" TextWrapping="Wrap" AcceptsReturn="True"/>
             </StackPanel>
@@ -221,6 +223,7 @@ $window = [Windows.Markup.XamlReader]::Load($reader)
 $apiKeyBox = $window.FindName("ApiKeyBox")
 $saveApiKeyBtn = $window.FindName("SaveApiKeyBtn")
 $clearApiKeyBtn = $window.FindName("ClearApiKeyBtn")
+$clearHistoryBtn = $window.FindName("ClearHistoryBtn")
 $modelCombo = $window.FindName("ModelCombo")
 $instructionsBox = $window.FindName("InstructionsBox")
 $chatDisplay = $window.FindName("ChatDisplay")
@@ -8526,6 +8529,34 @@ function Get-RelevantTools {
     return $global:toolDefinitions | Where-Object { $_.function.name -in $selectedTools }
 }
 
+function Trim-ConversationHistory {
+    param(
+        [int]$maxMessages = 20,  # Keep last 20 messages (10 exchanges)
+        [int]$maxTokensEstimate = 50000  # Rough estimate to stay under rate limits
+    )
+    
+    # Always keep system message separate, trim user/assistant/tool messages
+    $historyCount = $global:conversationHistory.Count
+    
+    if ($historyCount -le $maxMessages) {
+        return $global:conversationHistory
+    }
+    
+    # Keep the most recent messages
+    # For tool calls, we need to keep the assistant message with tool_calls and the corresponding tool responses together
+    $trimmedHistory = @()
+    $startIndex = [Math]::Max(0, $historyCount - $maxMessages)
+    
+    for ($i = $startIndex; $i -lt $historyCount; $i++) {
+        $trimmedHistory += $global:conversationHistory[$i]
+    }
+    
+    # Update global history
+    $global:conversationHistory = $trimmedHistory
+    
+    return $trimmedHistory
+}
+
 function Send-OpenAIRequest {
     param([string]$userMessage)
     
@@ -8573,8 +8604,11 @@ When creating a plan, break it into clear steps. As you complete each step, use 
         $systemMsg += "`n`n" + $instructionsBox.Text
     }
     
+    # Trim conversation history to prevent token overload
+    $trimmedHistory = Trim-ConversationHistory -maxMessages 20
+    
     $messages += @{role = "system"; content = $systemMsg}
-    $messages += $global:conversationHistory
+    $messages += $trimmedHistory
     
     $selectedModel = $modelCombo.SelectedItem.Content
     if (-not $selectedModel) { $selectedModel = "gpt-4o-mini" }
@@ -8639,9 +8673,12 @@ When creating a plan, break it into clear steps. As you complete each step, use 
             }
             
             # Send follow-up request with tool results
+            # Trim history again after adding tool results
+            $trimmedHistory = Trim-ConversationHistory -maxMessages 20
+            
             $messages = @()
             $messages += @{role = "system"; content = $systemMsg}
-            $messages += $global:conversationHistory
+            $messages += $trimmedHistory
             
             $body = @{
                 model = $selectedModel
@@ -8693,6 +8730,11 @@ When creating a plan, break it into clear steps. As you complete each step, use 
 
 $saveApiKeyBtn.Add_Click({ Save-Settings })
 $clearApiKeyBtn.Add_Click({ Clear-ApiKey })
+$clearHistoryBtn.Add_Click({ 
+    $global:conversationHistory = @()
+    $chatDisplay.Text = ""
+    Add-ChatMessage "System" "Conversation history cleared. Starting fresh conversation."
+})
 
 $quickActionsCombo.Add_SelectionChanged({
     $selected = $quickActionsCombo.SelectedItem
