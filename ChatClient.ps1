@@ -477,6 +477,9 @@ $global:toolDefinitions = @(
     @{type="function"; function=@{name="backup_registry_to_file"; description="Backup entire Windows Registry to .reg file using reg export. Can be restored later. WARNING: Registry file will be very large (hundreds of MB). Requires administrator privileges."; parameters=@{type="object"; properties=@{outputPath=@{type="string"; description="Output .reg file path (e.g., 'C:\\Backups\\full_registry_backup.reg')"}}; required=@("outputPath")}}}
     @{type="function"; function=@{name="get_backup_status"; description="Get Windows Backup status and schedule using wbadmin or Get-WBSummary. Shows last backup time, next scheduled backup, backup location, and backup status. Requires Windows Server Backup feature."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
     
+    # PowerShell Execution Tools (1)
+    @{type="function"; function=@{name="execute_powershell_command"; description="Execute arbitrary PowerShell command or script and return output. Can run any PowerShell cmdlet, function, or script block. Output is captured and returned. WARNINGS: (1) Commands run with current user privileges - dangerous commands can cause system damage. (2) Use carefully with system-modifying commands. (3) Long-running commands may timeout. (4) Interactive commands won't work. Examples: Get-Process, Get-Service, calculations, file operations, etc."; parameters=@{type="object"; properties=@{command=@{type="string"; description="PowerShell command or script to execute (e.g., 'Get-Date', 'Get-Process | Select -First 5', '(Get-Date).AddDays(7)')"}; timeoutSeconds=@{type="number"; description="Optional: Maximum seconds to wait for command completion (default: 30, max: 300)"}}; required=@("command")}}}
+    
     # Active Directory Tools (9) - Requires RSAT/AD module
     @{type="function"; function=@{name="get_ad_user"; description="Get Active Directory user information using Get-ADUser cmdlet. Shows username, display name, email, enabled status, last logon, password expiration. REQUIRES: Active Directory PowerShell module (RSAT)."; parameters=@{type="object"; properties=@{identity=@{type="string"; description="Username, SamAccountName, or DistinguishedName (e.g., 'jdoe', 'john.doe@domain.com', 'CN=John Doe,OU=Users,DC=domain,DC=com')"}}; required=@("identity")}}}
     @{type="function"; function=@{name="search_ad_users"; description="Search Active Directory users by name, email, or other attributes using Get-ADUser with filters. Returns matching users with key properties. REQUIRES: AD PowerShell module."; parameters=@{type="object"; properties=@{searchTerm=@{type="string"; description="Search term (name, email, username)"}; searchField=@{type="string"; enum=@("Name","Email","SamAccountName","DisplayName"); description="Field to search in"}}; required=@("searchTerm","searchField")}}}
@@ -2330,6 +2333,25 @@ CONCLUSION: Complete end-to-end CIS compliance capability with no gaps.
             "export_event_viewer_config" { wevtutil epl System $arguments.outputPath; "Event viewer config exported" }
             "backup_registry_to_file" { reg export HKLM $arguments.outputPath /y; "Registry backed up" }
             "get_backup_status" { wbadmin get versions }
+            
+            # PowerShell Execution Tools
+            "execute_powershell_command" {
+                try {
+                    $timeout = if ($arguments.timeoutSeconds) { [Math]::Min($arguments.timeoutSeconds, 300) } else { 30 }
+                    $job = Start-Job -ScriptBlock { param($cmd) Invoke-Expression $cmd } -ArgumentList $arguments.command
+                    $result = Wait-Job $job -Timeout $timeout
+                    if ($result) {
+                        $output = Receive-Job $job
+                        Remove-Job $job -Force
+                        if ($output) { $output | Out-String } else { "Command executed successfully with no output" }
+                    } else {
+                        Remove-Job $job -Force
+                        "Command timed out after $timeout seconds"
+                    }
+                } catch {
+                    "Error executing command: $($_.Exception.Message)"
+                }
+            }
             
             # Active Directory Tools
             "get_ad_user" { Get-ADUser -Identity $arguments.identity -Properties * | Select-Object Name, SamAccountName, Enabled, EmailAddress, LastLogonDate, PasswordExpiration | ConvertTo-Json }
