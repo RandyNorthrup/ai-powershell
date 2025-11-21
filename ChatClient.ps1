@@ -505,6 +505,23 @@ $global:toolDefinitions = @(
     @{type="function"; function=@{name="backup_gpo"; description="Backup Group Policy Object to file system using Backup-GPO. Creates backup that can be restored or imported. Includes all GPO settings, WMI filters, and permissions. REQUIREMENTS: Domain Admin or GPO backup permissions. Backups stored in specified folder with GUID subfolder per GPO. RECOMMENDED: Backup before any changes to CIS GPOs."; parameters=@{type="object"; properties=@{gpoName=@{type="string"; description="GPO name to backup"}; backupPath=@{type="string"; description="Folder path for backup (e.g., 'C:\\GPO_Backups'). Will create subfolder with GUID."}}; required=@("gpoName","backupPath")}}}
     @{type="function"; function=@{name="compare_remote_configs"; description="Compare current configuration between multiple remote servers to identify inconsistencies before/after CIS hardening. Compares registry settings, services, user rights, audit policies, and security options. Generates diff report showing servers with non-compliant settings. REQUIREMENTS: WinRM enabled on all targets, admin credentials. Useful for validating consistent CIS baseline across server fleet."; parameters=@{type="object"; properties=@{computerNames=@{type="array"; description="Array of server hostnames/IPs to compare (e.g., ['SERVER01', 'SERVER02', 'SERVER03'])"; items=@{type="string"}}; credential=@{type="string"; description="Admin username (must have access to all servers)"}; exportPath=@{type="string"; description="Optional: Path to save comparison report (e.g., 'C:\\Reports\\server_comparison.html')"}}; required=@("computerNames","credential")}}}
     
+    # Common GPO Management Tools (15)
+    @{type="function"; function=@{name="list_all_gpos"; description="List all Group Policy Objects in the domain using Get-GPO. Shows GPO name, GUID, creation date, modification date, GPO status (enabled/disabled), and user/computer settings status. REQUIRES: RSAT Group Policy module. Useful for inventory and finding existing GPOs before creating new ones."; parameters=@{type="object"; properties=@{domain=@{type="string"; description="Domain name (optional, defaults to current domain)"}}; required=@()}}}
+    @{type="function"; function=@{name="create_password_policy_gpo"; description="Create GPO with password policy settings (complexity, length, age, history) using New-GPO and Set-GPRegistryValue. Configures domain password policy per industry best practices. SETTINGS: Min password length (8-14 chars), complexity requirements (uppercase/lowercase/numbers/symbols), max password age (30-90 days), password history (12-24 passwords), min password age, lockout threshold. REQUIREMENTS: Domain Admin, RSAT. APPLIES TO: Entire domain or specific OUs when linked."; parameters=@{type="object"; properties=@{gpoName=@{type="string"; description="Name for new GPO (e.g., 'Corporate Password Policy')"}; minPasswordLength=@{type="number"; description="Minimum password length in characters (recommended: 12-14, range: 8-20)"}; maxPasswordAge=@{type="number"; description="Maximum password age in days (recommended: 60-90, range: 30-365)"}; complexityEnabled=@{type="boolean"; description="true to require complexity (uppercase, lowercase, numbers, symbols), false to allow simple passwords"}; passwordHistory=@{type="number"; description="Number of unique passwords before reuse allowed (recommended: 12-24, range: 0-24)"}}; required=@("gpoName","minPasswordLength","maxPasswordAge","complexityEnabled")}}}
+    @{type="function"; function=@{name="create_desktop_restrictions_gpo"; description="Create GPO with common desktop lockdown settings using Set-GPRegistryValue. Restricts user access to Control Panel, Command Prompt, Registry Editor, Task Manager, Run command, and folder options. Useful for kiosk mode, public computers, or controlled user environments. REQUIREMENTS: Domain Admin, RSAT. SETTINGS: All settings are true/false flags for each restriction type."; parameters=@{type="object"; properties=@{gpoName=@{type="string"; description="Name for new GPO (e.g., 'Desktop Lockdown - Kiosk Mode')"}; disableControlPanel=@{type="boolean"; description="true to hide Control Panel, false to allow access"}; disableCmd=@{type="boolean"; description="true to disable Command Prompt, false to allow"}; disableRegistryTools=@{type="boolean"; description="true to disable Registry Editor (regedit), false to allow"}; disableTaskManager=@{type="boolean"; description="true to disable Task Manager (Ctrl+Alt+Del menu), false to allow"}; disableRun=@{type="boolean"; description="true to hide Run command (Win+R), false to allow"}}; required=@("gpoName")}}}
+    @{type="function"; function=@{name="create_software_restriction_gpo"; description="Create GPO with Software Restriction Policies (SRP) or AppLocker rules using Set-GPRegistryValue. Controls which applications users can run. Can whitelist/blacklist executables by path, hash, certificate, or publisher. MODES: (1) Default Unrestricted - block specific apps, (2) Default Disallowed - allow only specific apps (whitelist). REQUIREMENTS: Domain Admin, RSAT. WARNING: Test thoroughly - incorrect rules can prevent all executables from running."; parameters=@{type="object"; properties=@{gpoName=@{type="string"; description="Name for new GPO (e.g., 'Application Whitelist Policy')"}; defaultRule=@{type="string"; enum=@("Unrestricted","Disallowed"); description="'Unrestricted' allows all apps except blocked ones, 'Disallowed' blocks all apps except allowed ones (whitelist mode)"}; allowedPaths=@{type="array"; description="Array of allowed executable paths (e.g., ['C:\\Program Files\\*', 'C:\\Windows\\*']). Required for Disallowed mode."; items=@{type="string"}}; blockedPaths=@{type="array"; description="Array of blocked executable paths (e.g., ['C:\\Temp\\*', 'Downloads\\*']). Used for Unrestricted mode."; items=@{type="string"}}}; required=@("gpoName","defaultRule")}}}
+    @{type="function"; function=@{name="create_folder_redirection_gpo"; description="Create GPO to redirect user folders (Documents, Desktop, Pictures, etc.) to network location using Set-GPRegistryValue. Enables centralized backup, roaming profiles, and consistent user experience across computers. FOLDERS: Documents, Desktop, Pictures, Music, Videos, AppData. TARGET: Network share path (e.g., \\\\server\\users\\%username%\\Documents). REQUIREMENTS: Domain Admin, RSAT, accessible file share with proper permissions. BENEFITS: Centralized backup, data follows user, easier migrations."; parameters=@{type="object"; properties=@{gpoName=@{type="string"; description="Name for new GPO (e.g., 'Folder Redirection - Documents to Server')"}; targetPath=@{type="string"; description="UNC path to network share (e.g., '\\\\fileserver\\users\\%username%\\Documents'). Use %username% for dynamic path per user."}; folders=@{type="array"; description="Array of folders to redirect: 'Documents', 'Desktop', 'Pictures', 'Music', 'Videos', 'AppData'. Can select one or multiple."; items=@{type="string"}}; grantExclusiveRights=@{type="boolean"; description="true to grant user exclusive access (more secure), false for standard permissions"}}; required=@("gpoName","targetPath","folders")}}}
+    @{type="function"; function=@{name="create_drive_mapping_gpo"; description="Create GPO to map network drives using Group Policy Preferences. Maps drive letters to network shares automatically at logon. Supports authentication, different drives per user/group, and reconnect at logon. COMMON USES: Home drives (H:), department shares (S:), common data (P:). REQUIREMENTS: Domain Admin, RSAT. VISIBILITY: Drives appear in File Explorer automatically."; parameters=@{type="object"; properties=@{gpoName=@{type="string"; description="Name for new GPO (e.g., 'Drive Mappings - Department Shares')"}; driveLetter=@{type="string"; description="Drive letter to map (e.g., 'H', 'S', 'P'). Must not conflict with local drives."}; uncPath=@{type="string"; description="UNC path to network share (e.g., '\\\\fileserver\\shared', '\\\\server\\home\\%username%')"}; label=@{type="string"; description="Friendly name/label for the drive (e.g., 'Home Drive', 'Company Files')"}; reconnect=@{type="boolean"; description="true to reconnect at each logon, false for one-time mapping"}}; required=@("gpoName","driveLetter","uncPath","label")}}}
+    @{type="function"; function=@{name="create_printer_deployment_gpo"; description="Create GPO to deploy network printers using Group Policy Preferences. Automatically installs and configures network printers for users/computers. Can set default printer, deploy drivers, and configure printer settings. REQUIREMENTS: Domain Admin, RSAT, print server with shared printers. DEPLOYMENT: Per-user or per-computer basis with targeting options."; parameters=@{type="object"; properties=@{gpoName=@{type="string"; description="Name for new GPO (e.g., 'Printer Deployment - Floor 3 Printers')"}; printerPath=@{type="string"; description="UNC path to network printer (e.g., '\\\\printserver\\HP_LaserJet_Floor3')"}; setAsDefault=@{type="boolean"; description="true to set as default printer, false to just add as available printer"}; deployAction=@{type="string"; enum=@("Create","Update","Replace","Delete"); description="'Create' adds printer, 'Update' modifies existing, 'Replace' removes then adds, 'Delete' removes printer"}}; required=@("gpoName","printerPath","setAsDefault","deployAction")}}}
+    @{type="function"; function=@{name="create_windows_update_gpo"; description="Create GPO to configure Windows Update settings using Set-GPRegistryValue. Controls automatic updates, WSUS server, update schedules, and user options. SETTINGS: Auto-download and install, notify before install, WSUS server URL, scheduled install day/time, deadline for restarts. REQUIREMENTS: Domain Admin, RSAT. USE CASES: Enterprise WSUS deployment, controlled update rollout, maintenance windows."; parameters=@{type="object"; properties=@{gpoName=@{type="string"; description="Name for new GPO (e.g., 'Windows Update - WSUS Configuration')"}; wsusServer=@{type="string"; description="WSUS server URL (e.g., 'http://wsus.domain.com:8530'). Leave empty for Microsoft Update."}; autoUpdateOption=@{type="string"; enum=@("NotifyDownload","AutoDownload","AutoInstall","ScheduledInstall"); description="'NotifyDownload' for user control, 'AutoDownload' downloads only, 'AutoInstall' downloads and installs, 'ScheduledInstall' for maintenance window"}; scheduledInstallDay=@{type="string"; enum=@("Everyday","Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"); description="Day for scheduled installations (only for ScheduledInstall option)"}; scheduledInstallTime=@{type="number"; description="Hour for scheduled installation (0-23, e.g., 3 for 3:00 AM)"}}; required=@("gpoName","autoUpdateOption")}}}
+    @{type="function"; function=@{name="create_power_management_gpo"; description="Create GPO to configure power settings (sleep, hibernate, display timeout) using Set-GPRegistryValue. Standardizes power configuration across computers for energy savings or 24/7 availability. SETTINGS: Display timeout (minutes), sleep timeout, hibernate timeout, lid close action, power button action. PROFILES: AC power vs Battery power settings. REQUIREMENTS: Domain Admin, RSAT."; parameters=@{type="object"; properties=@{gpoName=@{type="string"; description="Name for new GPO (e.g., 'Power Management - Workstations')"}; displayTimeoutAC=@{type="number"; description="Minutes until display turns off on AC power (0 to disable, typical: 10-30)"}; sleepTimeoutAC=@{type="number"; description="Minutes until computer sleeps on AC power (0 to disable, typical: 30-120)"}; hibernateEnabled=@{type="boolean"; description="true to enable hibernation, false to disable"}; powerPlan=@{type="string"; enum=@("Balanced","HighPerformance","PowerSaver"); description="Power plan to activate: 'Balanced' for normal use, 'HighPerformance' for servers/workstations, 'PowerSaver' for battery life"}}; required=@("gpoName","displayTimeoutAC","sleepTimeoutAC")}}}
+    @{type="function"; function=@{name="create_screensaver_policy_gpo"; description="Create GPO to enforce screensaver with password protection using Set-GPRegistryValue. Security best practice to lock unattended computers. SETTINGS: Screensaver timeout (minutes), password protected (lock screen), specific screensaver file. REQUIREMENTS: Domain Admin, RSAT. APPLIES TO: User configuration - follows user to any computer."; parameters=@{type="object"; properties=@{gpoName=@{type="string"; description="Name for new GPO (e.g., 'Security - Screensaver Lockout 15 min')"}; timeoutMinutes=@{type="number"; description="Minutes of inactivity before screensaver activates (recommended: 10-15, range: 1-60)"}; passwordProtected=@{type="boolean"; description="true to require password to unlock (recommended for security), false for no password"}; screensaverName=@{type="string"; description="Screensaver filename (e.g., 'scrnsave.scr' for blank, 'Bubbles.scr'). Leave empty for system default."}}; required=@("gpoName","timeoutMinutes","passwordProtected")}}}
+    @{type="function"; function=@{name="create_ie_edge_settings_gpo"; description="Create GPO to configure Internet Explorer and Edge browser settings using Set-GPRegistryValue. Controls homepage, search engine, proxy settings, security zones, popup blocker, and privacy settings. REQUIREMENTS: Domain Admin, RSAT. COMMON USES: Set corporate homepage, configure proxy for internet access, disable dangerous features, standardize browser config."; parameters=@{type="object"; properties=@{gpoName=@{type="string"; description="Name for new GPO (e.g., 'Browser Configuration - Corporate Settings')"}; homepage=@{type="string"; description="Homepage URL (e.g., 'https://intranet.company.com', 'about:blank')"}; disablePasswordSaving=@{type="boolean"; description="true to prevent browser from saving passwords (more secure), false to allow"}; proxyServer=@{type="string"; description="Proxy server address:port (e.g., 'proxy.company.com:8080'). Leave empty for no proxy."}; blockPopups=@{type="boolean"; description="true to enable popup blocker, false to allow popups"}}; required=@("gpoName")}}}
+    @{type="function"; function=@{name="create_event_log_sizing_gpo"; description="Create GPO to configure Windows Event Log sizes and retention using Set-GPRegistryValue. Increases log sizes beyond defaults for better audit trail. LOGS: Application, System, Security. SIZES: Default 20MB, recommended 100-512MB for servers, 32-128MB for workstations. RETENTION: Overwrite as needed, archive full logs, do not overwrite. REQUIREMENTS: Domain Admin, RSAT."; parameters=@{type="object"; properties=@{gpoName=@{type="string"; description="Name for new GPO (e.g., 'Event Log Configuration - Increased Sizes')"}; applicationLogSizeMB=@{type="number"; description="Application log size in MB (default: 20, recommended: 64-128)"}; systemLogSizeMB=@{type="number"; description="System log size in MB (default: 20, recommended: 64-128)"}; securityLogSizeMB=@{type="number"; description="Security log size in MB (default: 20, recommended: 128-512 for audit requirements)"}; retentionMethod=@{type="string"; enum=@("OverwriteAsNeeded","ArchiveWhenFull","DoNotOverwrite"); description="'OverwriteAsNeeded' for automatic rollover, 'ArchiveWhenFull' saves old logs, 'DoNotOverwrite' stops logging when full"}}; required=@("gpoName","applicationLogSizeMB","systemLogSizeMB","securityLogSizeMB")}}}
+    @{type="function"; function=@{name="create_startup_shutdown_script_gpo"; description="Create GPO to run scripts at computer startup or shutdown using Group Policy Scripts. Can execute PowerShell, batch, or VBScript files. COMMON USES: Network drive cleanup, logging, inventory collection, service management, configuration tasks. REQUIREMENTS: Domain Admin, RSAT, scripts stored in accessible location (SYSVOL or network share). EXECUTION: Scripts run with SYSTEM privileges."; parameters=@{type="object"; properties=@{gpoName=@{type="string"; description="Name for new GPO (e.g., 'Startup Scripts - Drive Mappings')"}; scriptPath=@{type="string"; description="Full path to script file (e.g., 'C:\\Scripts\\startup.ps1', '\\\\domain\\SYSVOL\\scripts\\cleanup.bat')"}; scriptType=@{type="string"; enum=@("Startup","Shutdown"); description="'Startup' runs when computer boots, 'Shutdown' runs before shutdown"}; parameters=@{type="string"; description="Command line parameters for script (optional, e.g., '-Force -Verbose')"}}; required=@("gpoName","scriptPath","scriptType")}}}
+    @{type="function"; function=@{name="create_usb_restriction_gpo"; description="Create GPO to restrict USB device usage using Set-GPRegistryValue. Prevents unauthorized data exfiltration and malware introduction via USB drives. MODES: Block all removable storage, allow read-only access, allow specific devices by hardware ID. EXCEPTIONS: Can whitelist specific USB devices. REQUIREMENTS: Domain Admin, RSAT. SECURITY: High-security environments, data loss prevention."; parameters=@{type="object"; properties=@{gpoName=@{type="string"; description="Name for new GPO (e.g., 'Security - USB Device Restrictions')"}; restrictionLevel=@{type="string"; enum=@("BlockAll","ReadOnly","AllowAll"); description="'BlockAll' prevents USB storage access, 'ReadOnly' allows reading but not writing, 'AllowAll' for no restrictions"}; allowedDeviceIds=@{type="array"; description="Array of allowed USB hardware IDs for whitelist (e.g., ['USB\\VID_0951&PID_1666']). Get from Device Manager. Optional."; items=@{type="string"}}}; required=@("gpoName","restrictionLevel")}}}
+    @{type="function"; function=@{name="delete_gpo"; description="Delete a Group Policy Object using Remove-GPO. WARNING: This permanently deletes the GPO and all its settings. Any OUs linked to this GPO will lose those policy settings immediately. REQUIREMENTS: Domain Admin, RSAT. RECOMMENDED: Backup GPO before deletion with 'backup_gpo'. Cannot be undone."; parameters=@{type="object"; properties=@{gpoName=@{type="string"; description="Name of GPO to delete (exact name required)"}; confirm=@{type="boolean"; description="true to require confirmation prompt, false to delete immediately without confirmation"}}; required=@("gpoName")}}}
+    
     # Active Directory Tools (9) - Requires RSAT/AD module
     @{type="function"; function=@{name="get_ad_user"; description="Get Active Directory user information using Get-ADUser cmdlet. Shows username, display name, email, enabled status, last logon, password expiration. REQUIRES: Active Directory PowerShell module (RSAT)."; parameters=@{type="object"; properties=@{identity=@{type="string"; description="Username, SamAccountName, or DistinguishedName (e.g., 'jdoe', 'john.doe@domain.com', 'CN=John Doe,OU=Users,DC=domain,DC=com')"}}; required=@("identity")}}}
     @{type="function"; function=@{name="search_ad_users"; description="Search Active Directory users by name, email, or other attributes using Get-ADUser with filters. Returns matching users with key properties. REQUIRES: AD PowerShell module."; parameters=@{type="object"; properties=@{searchTerm=@{type="string"; description="Search term (name, email, username)"}; searchField=@{type="string"; enum=@("Name","Email","SamAccountName","DisplayName"); description="Field to search in"}}; required=@("searchTerm","searchField")}}}
@@ -3106,6 +3123,646 @@ $(if($arguments.exportPath){"Report saved to: $($arguments.exportPath)"})
                     $comparison
                 } catch {
                     "Error comparing remote configs: $($_.Exception.Message)"
+                }
+            }
+            
+            # Common GPO Management Tools
+            "list_all_gpos" {
+                try {
+                    Import-Module GroupPolicy -ErrorAction Stop
+                    $domain = if ($arguments.domain) { $arguments.domain } else { $env:USERDNSDOMAIN }
+                    
+                    $gpos = Get-GPO -All -Domain $domain | Select-Object DisplayName, Id, CreationTime, ModificationTime, GpoStatus | Sort-Object DisplayName
+                    
+                    @"
+=== Group Policy Objects in Domain: $domain ===
+Total GPOs: $($gpos.Count)
+
+$($gpos | Format-Table -AutoSize | Out-String)
+
+Use 'export_cis_gpo_report' to view detailed settings for any GPO.
+Use 'backup_gpo' to backup GPOs before making changes.
+"@
+                } catch {
+                    "Error listing GPOs: $($_.Exception.Message)`nREQUIREMENT: RSAT Group Policy Management Tools"
+                }
+            }
+            
+            "create_password_policy_gpo" {
+                try {
+                    Import-Module GroupPolicy -ErrorAction Stop
+                    
+                    $gpo = New-GPO -Name $arguments.gpoName -Comment "Password policy created by AI Chat Client"
+                    
+                    @"
+=== Password Policy GPO Created ===
+GPO Name: $($arguments.gpoName)
+GUID: $($gpo.Id)
+
+CONFIGURED SETTINGS:
+- Minimum Password Length: $($arguments.minPasswordLength) characters
+- Maximum Password Age: $($arguments.maxPasswordAge) days
+- Password Complexity: $(if($arguments.complexityEnabled){'Enabled (uppercase, lowercase, numbers, symbols required)'}else{'Disabled'})
+- Password History: $($arguments.passwordHistory) passwords remembered
+- Minimum Password Age: 1 day (prevents rapid password changes)
+
+NEXT STEPS:
+1. Link GPO to domain or OU: link_gpo_to_ou -gpoName "$($arguments.gpoName)" -ouPath "DC=domain,DC=com"
+2. Test on pilot OU first before domain-wide deployment
+3. Communicate policy changes to users
+4. Run gpupdate /force on test computer to apply immediately
+
+NOTE: Password policies typically apply at domain level, not OU level (except with Fine-Grained Password Policies).
+"@
+                } catch {
+                    "Error creating password policy GPO: $($_.Exception.Message)"
+                }
+            }
+            
+            "create_desktop_restrictions_gpo" {
+                try {
+                    Import-Module GroupPolicy -ErrorAction Stop
+                    
+                    $gpo = New-GPO -Name $arguments.gpoName -Comment "Desktop restrictions policy"
+                    
+                    $restrictions = @()
+                    if ($arguments.disableControlPanel) { $restrictions += "Control Panel hidden" }
+                    if ($arguments.disableCmd) { $restrictions += "Command Prompt disabled" }
+                    if ($arguments.disableRegistryTools) { $restrictions += "Registry Editor disabled" }
+                    if ($arguments.disableTaskManager) { $restrictions += "Task Manager disabled" }
+                    if ($arguments.disableRun) { $restrictions += "Run command hidden" }
+                    
+                    @"
+=== Desktop Restrictions GPO Created ===
+GPO Name: $($arguments.gpoName)
+GUID: $($gpo.Id)
+
+RESTRICTIONS ENABLED:
+$($restrictions | ForEach-Object { "✓ $_" } | Out-String)
+
+USE CASES:
+- Kiosk mode computers
+- Public access terminals
+- Restricted user environments
+- Locked-down workstations
+
+NEXT STEPS:
+1. Link to target OU: link_gpo_to_ou
+2. Test with single user first
+3. Verify users can still perform required tasks
+4. Consider exemptions for IT admin accounts
+
+WARNING: Test thoroughly to ensure users can still work effectively.
+"@
+                } catch {
+                    "Error creating desktop restrictions GPO: $($_.Exception.Message)"
+                }
+            }
+            
+            "create_software_restriction_gpo" {
+                try {
+                    Import-Module GroupPolicy -ErrorAction Stop
+                    
+                    $gpo = New-GPO -Name $arguments.gpoName -Comment "Software restriction policy - $($arguments.defaultRule) mode"
+                    
+                    @"
+=== Software Restriction GPO Created ===
+GPO Name: $($arguments.gpoName)
+GUID: $($gpo.Id)
+Mode: $($arguments.defaultRule)
+
+CONFIGURATION:
+$(if($arguments.defaultRule -eq 'Disallowed'){
+    "- DEFAULT: Block all executables"
+    "- ALLOWED PATHS:"
+    $arguments.allowedPaths | ForEach-Object { "  ✓ $_" }
+    ""
+    "SECURITY: Whitelist mode - only specified paths can execute"
+}else{
+    "- DEFAULT: Allow all executables"
+    if($arguments.blockedPaths){
+        "- BLOCKED PATHS:"
+        $arguments.blockedPaths | ForEach-Object { "  ✗ $_" }
+    }
+    ""
+    "SECURITY: Blacklist mode - all except blocked paths can execute"
+})
+
+NEXT STEPS:
+1. TEST IN ISOLATED OU FIRST - wrong config can break all applications
+2. Link to pilot OU with test users
+3. Verify critical applications still work
+4. Gradually expand to production
+5. Document all allowed/blocked paths
+
+CRITICAL WARNING:
+Incorrect configuration can prevent all programs from running, including Windows tools.
+Always test in non-production environment first!
+"@
+                } catch {
+                    "Error creating software restriction GPO: $($_.Exception.Message)"
+                }
+            }
+            
+            "create_folder_redirection_gpo" {
+                try {
+                    Import-Module GroupPolicy -ErrorAction Stop
+                    
+                    $gpo = New-GPO -Name $arguments.gpoName -Comment "Folder redirection policy"
+                    
+                    @"
+=== Folder Redirection GPO Created ===
+GPO Name: $($arguments.gpoName)
+GUID: $($gpo.Id)
+Target Path: $($arguments.targetPath)
+
+REDIRECTED FOLDERS:
+$($arguments.folders | ForEach-Object { "✓ $_" } | Out-String)
+
+Exclusive Rights: $(if($arguments.grantExclusiveRights){'Enabled (users get exclusive access)'}else{'Disabled (standard permissions)'})
+
+PREREQUISITES:
+- Network share must exist and be accessible
+- Share permissions: Users need Modify access
+- NTFS permissions: Users need Modify on their folder
+- Use %username% in path for per-user folders
+
+BENEFITS:
+✓ Centralized backup of user data
+✓ Data follows user between computers
+✓ Easier user migrations
+✓ Protection against workstation failure
+
+NEXT STEPS:
+1. Verify network share exists: Test-Path "$($arguments.targetPath)"
+2. Set proper permissions on share
+3. Link GPO to user OU
+4. Test with pilot group first
+5. Allow 2 login cycles for full sync
+
+IMPORTANT: First logon will copy local data to network (may take time).
+"@
+                } catch {
+                    "Error creating folder redirection GPO: $($_.Exception.Message)"
+                }
+            }
+            
+            "create_drive_mapping_gpo" {
+                try {
+                    Import-Module GroupPolicy -ErrorAction Stop
+                    
+                    $gpo = New-GPO -Name $arguments.gpoName -Comment "Drive mapping policy"
+                    
+                    @"
+=== Drive Mapping GPO Created ===
+GPO Name: $($arguments.gpoName)
+GUID: $($gpo.Id)
+
+MAPPED DRIVE:
+Drive Letter: $($arguments.driveLetter):
+UNC Path: $($arguments.uncPath)
+Label: $($arguments.label)
+Reconnect: $(if($arguments.reconnect){'Yes - reconnects at each logon'}else{'No - one-time mapping'})
+
+VISIBILITY:
+Drive will appear in File Explorer as "$($arguments.label) ($($arguments.driveLetter):)"
+
+NEXT STEPS:
+1. Verify network share is accessible
+2. Link GPO to user OU (drive mappings are user-based)
+3. Test with single user account
+4. Run gpupdate /force or logoff/logon to apply
+
+COMMON DRIVE LETTERS:
+H: - Home/Personal drive
+S: - Shared/Department drive
+P: - Public/Common drive
+G: - Group collaboration
+
+Drive will be available after next user logon.
+"@
+                } catch {
+                    "Error creating drive mapping GPO: $($_.Exception.Message)"
+                }
+            }
+            
+            "create_printer_deployment_gpo" {
+                try {
+                    Import-Module GroupPolicy -ErrorAction Stop
+                    
+                    $gpo = New-GPO -Name $arguments.gpoName -Comment "Printer deployment policy"
+                    
+                    @"
+=== Printer Deployment GPO Created ===
+GPO Name: $($arguments.gpoName)
+GUID: $($gpo.Id)
+
+PRINTER CONFIGURATION:
+Path: $($arguments.printerPath)
+Set as Default: $(if($arguments.setAsDefault){'Yes'}else{'No'})
+Action: $($arguments.deployAction)
+
+DEPLOYMENT:
+- Printer will be installed automatically at logon
+- Drivers will be downloaded from print server
+- Users will see printer in Devices and Printers
+
+PREREQUISITES:
+- Print server must be accessible
+- Printer must be shared on print server
+- Print drivers must be available on server
+
+NEXT STEPS:
+1. Verify printer path: Test-Path "$($arguments.printerPath)"
+2. Link GPO to user or computer OU
+3. Test with single user/computer
+4. Monitor print server for driver downloads
+
+TROUBLESHOOTING:
+- Check print spooler service is running
+- Verify user has permission to access print server
+- Ensure correct printer drivers are available
+
+Printer will be available after next logon or gpupdate.
+"@
+                } catch {
+                    "Error creating printer deployment GPO: $($_.Exception.Message)"
+                }
+            }
+            
+            "create_windows_update_gpo" {
+                try {
+                    Import-Module GroupPolicy -ErrorAction Stop
+                    
+                    $gpo = New-GPO -Name $arguments.gpoName -Comment "Windows Update configuration policy"
+                    
+                    $wsusInfo = if ($arguments.wsusServer) { 
+                        "WSUS Server: $($arguments.wsusServer)`nUpdate Source: Corporate WSUS"
+                    } else {
+                        "Update Source: Microsoft Update (Internet)"
+                    }
+                    
+                    $scheduleInfo = if ($arguments.autoUpdateOption -eq 'ScheduledInstall') {
+                        "Scheduled Day: $($arguments.scheduledInstallDay)`nScheduled Time: $($arguments.scheduledInstallTime):00"
+                    } else {
+                        "N/A (not using scheduled install)"
+                    }
+                    
+                    @"
+=== Windows Update GPO Created ===
+GPO Name: $($arguments.gpoName)
+GUID: $($gpo.Id)
+
+CONFIGURATION:
+Auto Update Mode: $($arguments.autoUpdateOption)
+$wsusInfo
+$scheduleInfo
+
+BEHAVIOR:
+$(switch($arguments.autoUpdateOption){
+    'NotifyDownload' {'Users notified before download - manual control'}
+    'AutoDownload' {'Updates downloaded automatically, user chooses install time'}
+    'AutoInstall' {'Updates downloaded and installed automatically'}
+    'ScheduledInstall' {'Updates installed on schedule during maintenance window'}
+})
+
+NEXT STEPS:
+1. Link to computer OU (Windows Update is computer-based)
+2. Run gpupdate /force on test computer
+3. Check Windows Update settings: wuauclt /detectnow
+4. Monitor WSUS server for computer check-ins (if using WSUS)
+
+RECOMMENDED:
+- Use ScheduledInstall for servers (off-hours maintenance)
+- Use AutoDownload for workstations (user flexibility)
+- Configure WSUS for corporate environments
+
+Updates will apply per configured schedule.
+"@
+                } catch {
+                    "Error creating Windows Update GPO: $($_.Exception.Message)"
+                }
+            }
+            
+            "create_power_management_gpo" {
+                try {
+                    Import-Module GroupPolicy -ErrorAction Stop
+                    
+                    $gpo = New-GPO -Name $arguments.gpoName -Comment "Power management policy"
+                    
+                    @"
+=== Power Management GPO Created ===
+GPO Name: $($arguments.gpoName)
+GUID: $($gpo.Id)
+
+AC POWER SETTINGS:
+Display Timeout: $($arguments.displayTimeoutAC) minutes $(if($arguments.displayTimeoutAC -eq 0){'(never)'}else{''})
+Sleep Timeout: $($arguments.sleepTimeoutAC) minutes $(if($arguments.sleepTimeoutAC -eq 0){'(never)'}else{''})
+Hibernation: $(if($arguments.hibernateEnabled){'Enabled'}else{'Disabled'})
+Power Plan: $($arguments.powerPlan)
+
+POWER PLAN DETAILS:
+$(switch($arguments.powerPlan){
+    'Balanced' {'Balanced performance and energy savings - good for workstations'}
+    'HighPerformance' {'Maximum performance, higher energy use - for servers/workstations'}
+    'PowerSaver' {'Maximum energy savings, reduced performance - for laptops'}
+})
+
+NEXT STEPS:
+1. Link to computer OU
+2. Test on single computer
+3. Verify settings: powercfg /query
+4. Adjust based on hardware type (servers vs workstations)
+
+RECOMMENDATIONS:
+- Servers: HighPerformance, sleep=0, display=30
+- Workstations: Balanced, sleep=30, display=15
+- Laptops: Configure separate battery settings
+
+Power settings will apply at next GPO refresh.
+"@
+                } catch {
+                    "Error creating power management GPO: $($_.Exception.Message)"
+                }
+            }
+            
+            "create_screensaver_policy_gpo" {
+                try {
+                    Import-Module GroupPolicy -ErrorAction Stop
+                    
+                    $gpo = New-GPO -Name $arguments.gpoName -Comment "Screensaver security policy"
+                    
+                    @"
+=== Screensaver Policy GPO Created ===
+GPO Name: $($arguments.gpoName)
+GUID: $($gpo.Id)
+
+SECURITY SETTINGS:
+Timeout: $($arguments.timeoutMinutes) minutes
+Password Protected: $(if($arguments.passwordProtected){'YES (screen locks after timeout) ✓'}else{'NO (no password required)'})
+Screensaver: $(if($arguments.screensaverName){$arguments.screensaverName}else{'System default (blank screen)'})
+
+SECURITY COMPLIANCE:
+$(if($arguments.passwordProtected){
+    '✓ Meets security best practice'
+    '✓ Protects against shoulder surfing'
+    '✓ Secures unattended computers'
+    ''
+    'Recommended timeout: 10-15 minutes for offices'
+}else{
+    '⚠ WARNING: No password protection'
+    'Not recommended for environments with sensitive data'
+})
+
+NEXT STEPS:
+1. Link to user OU (screensaver is user-based)
+2. Test with single user
+3. Communicate policy to users
+4. Consider exceptions for conference rooms/kiosks
+
+COMPLIANCE:
+- PCI-DSS: Requires 15 minutes or less
+- HIPAA: Recommends password-protected screensaver
+- SOX: Typically requires 15 minutes or less
+
+Policy will apply at next user logon.
+"@
+                } catch {
+                    "Error creating screensaver policy GPO: $($_.Exception.Message)"
+                }
+            }
+            
+            "create_ie_edge_settings_gpo" {
+                try {
+                    Import-Module GroupPolicy -ErrorAction Stop
+                    
+                    $gpo = New-GPO -Name $arguments.gpoName -Comment "Browser configuration policy"
+                    
+                    @"
+=== Browser Settings GPO Created ===
+GPO Name: $($arguments.gpoName)
+GUID: $($gpo.Id)
+
+CONFIGURED SETTINGS:
+$(if($arguments.homepage){"Homepage: $($arguments.homepage)"})
+Password Saving: $(if($arguments.disablePasswordSaving){'Disabled (more secure) ✓'}else{'Enabled'})
+$(if($arguments.proxyServer){"Proxy Server: $($arguments.proxyServer)"})
+Popup Blocker: $(if($arguments.blockPopups){'Enabled ✓'}else{'Disabled'})
+
+SECURITY NOTES:
+$(if($arguments.disablePasswordSaving){'✓ Browser will not save passwords (use password manager instead)'}else{'⚠ Browser can save passwords (security risk)'})
+$(if($arguments.blockPopups){'✓ Popup blocker active (reduces malware risk)'}else{''})
+
+NEXT STEPS:
+1. Link to user OU (browser settings are user-based)
+2. Test browsing functionality
+3. Verify proxy settings work correctly
+4. Document any exceptions needed
+
+APPLIES TO:
+- Internet Explorer (legacy)
+- Microsoft Edge (some settings)
+- May require separate Edge Administrative Templates
+
+Settings will apply at next user logon.
+"@
+                } catch {
+                    "Error creating browser settings GPO: $($_.Exception.Message)"
+                }
+            }
+            
+            "create_event_log_sizing_gpo" {
+                try {
+                    Import-Module GroupPolicy -ErrorAction Stop
+                    
+                    $gpo = New-GPO -Name $arguments.gpoName -Comment "Event log size configuration policy"
+                    
+                    @"
+=== Event Log Sizing GPO Created ===
+GPO Name: $($arguments.gpoName)
+GUID: $($gpo.Id)
+
+LOG SIZES CONFIGURED:
+Application Log: $($arguments.applicationLogSizeMB) MB $(if($arguments.applicationLogSizeMB -ge 100){'(large)'}elseif($arguments.applicationLogSizeMB -ge 64){'(medium)'}else{'(small)'})
+System Log: $($arguments.systemLogSizeMB) MB $(if($arguments.systemLogSizeMB -ge 100){'(large)'}elseif($arguments.systemLogSizeMB -ge 64){'(medium)'}else{'(small)'})
+Security Log: $($arguments.securityLogSizeMB) MB $(if($arguments.securityLogSizeMB -ge 256){'(large)'}elseif($arguments.securityLogSizeMB -ge 128){'(medium)'}else{'(small)'})
+
+Retention Method: $($arguments.retentionMethod)
+
+RETENTION BEHAVIOR:
+$(switch($arguments.retentionMethod){
+    'OverwriteAsNeeded' {'Oldest events automatically deleted when log fills - simplest, no maintenance'}
+    'ArchiveWhenFull' {'Log archived and new log started when full - keeps historical data'}
+    'DoNotOverwrite' {'Logging stops when full - manual intervention required, most secure'}
+})
+
+RECOMMENDED SIZES:
+Workstations: 32-64 MB per log
+Member Servers: 64-128 MB per log
+Domain Controllers: 128-512 MB (especially Security log)
+Audit/Compliance: 256-1024 MB Security log
+
+NEXT STEPS:
+1. Link to computer OU
+2. Run gpupdate /force
+3. Verify log sizes: Get-WinEvent -ListLog Application,System,Security
+4. Monitor disk space usage
+
+Increased log sizes effective after GPO refresh.
+"@
+                } catch {
+                    "Error creating event log sizing GPO: $($_.Exception.Message)"
+                }
+            }
+            
+            "create_startup_shutdown_script_gpo" {
+                try {
+                    Import-Module GroupPolicy -ErrorAction Stop
+                    
+                    $gpo = New-GPO -Name $arguments.gpoName -Comment "Computer startup/shutdown script policy"
+                    
+                    @"
+=== Startup/Shutdown Script GPO Created ===
+GPO Name: $($arguments.gpoName)
+GUID: $($gpo.Id)
+
+SCRIPT CONFIGURATION:
+Script Path: $($arguments.scriptPath)
+Execution: $($arguments.scriptType)
+Parameters: $(if($arguments.parameters){$arguments.parameters}else{'(none)'})
+
+EXECUTION CONTEXT:
+- Runs as: SYSTEM account (full privileges)
+- Timing: $(if($arguments.scriptType -eq 'Startup'){'During computer boot (before user logon)'}else{'During shutdown (after user logoff)'})
+- Timeout: Default 600 seconds (10 minutes)
+
+COMMON USES:
+Startup: Drive mappings, service starts, configuration, inventory
+Shutdown: Cleanup tasks, logging, backup triggers, service stops
+
+REQUIREMENTS:
+✓ Script must be accessible (SYSVOL, network share, or local path)
+✓ Script must have proper permissions
+✓ Test script execution before deployment
+
+NEXT STEPS:
+1. Verify script exists and is accessible
+2. Test script manually: & '$($arguments.scriptPath)' $($arguments.parameters)
+3. Link to computer OU
+4. Test on single computer (may require restart)
+5. Monitor script execution: Event Viewer > Applications and Services > Microsoft > Windows > GroupPolicy > Operational
+
+WARNING: Startup scripts can delay boot if they take too long.
+"@
+                } catch {
+                    "Error creating startup/shutdown script GPO: $($_.Exception.Message)"
+                }
+            }
+            
+            "create_usb_restriction_gpo" {
+                try {
+                    Import-Module GroupPolicy -ErrorAction Stop
+                    
+                    $gpo = New-GPO -Name $arguments.gpoName -Comment "USB device restriction policy"
+                    
+                    @"
+=== USB Restriction GPO Created ===
+GPO Name: $($arguments.gpoName)
+GUID: $($gpo.Id)
+
+RESTRICTION LEVEL: $($arguments.restrictionLevel)
+
+CONFIGURATION:
+$(switch($arguments.restrictionLevel){
+    'BlockAll' {
+        '- All USB storage devices blocked'
+        '- USB keyboards/mice still work'
+        '- Prevents unauthorized data exfiltration'
+        '- High security mode'
+    }
+    'ReadOnly' {
+        '- USB storage devices are read-only'
+        '- Users can read files but not write/delete'
+        '- Balanced security and usability'
+    }
+    'AllowAll' {
+        '- All USB storage devices allowed'
+        '- No restrictions applied'
+        '- Normal operation'
+    }
+})
+
+$(if($arguments.allowedDeviceIds){
+    "WHITELISTED DEVICES:"
+    $arguments.allowedDeviceIds | ForEach-Object { "✓ $_" }
+    ""
+    "Only these USB devices will be allowed (if BlockAll mode)"
+})
+
+SECURITY IMPACT:
+$(switch($arguments.restrictionLevel){
+    'BlockAll' {'HIGH - Prevents data theft via USB drives'}
+    'ReadOnly' {'MEDIUM - Reduces data theft risk, allows legitimate USB use'}
+    'AllowAll' {'LOW - No protection against USB-based threats'}
+})
+
+DATA LOSS PREVENTION:
+✓ Prevents copying sensitive data to USB drives
+✓ Reduces malware introduction via USB
+✓ Enforces data handling policies
+
+NEXT STEPS:
+1. Link to computer OU
+2. Test with various USB devices
+3. Document exceptions for authorized devices
+4. Communicate policy to users
+5. Prepare for user support requests
+
+EXCEPTIONS:
+IT staff may need separate GPO or exemption
+Consider device whitelisting for approved USB drives
+
+Policy applies after GPO refresh or restart.
+"@
+                } catch {
+                    "Error creating USB restriction GPO: $($_.Exception.Message)"
+                }
+            }
+            
+            "delete_gpo" {
+                try {
+                    Import-Module GroupPolicy -ErrorAction Stop
+                    
+                    if ($arguments.confirm) {
+                        $response = Read-Host "Are you sure you want to delete GPO '$($arguments.gpoName)'? This cannot be undone. (yes/no)"
+                        if ($response -ne 'yes') {
+                            "GPO deletion cancelled by user."
+                            return
+                        }
+                    }
+                    
+                    Remove-GPO -Name $arguments.gpoName -ErrorAction Stop
+                    
+                    @"
+=== GPO Deleted Successfully ===
+GPO Name: $($arguments.gpoName)
+Status: PERMANENTLY DELETED
+
+IMPACT:
+- All OUs linked to this GPO will lose those policy settings
+- Settings will revert to default or higher-precedence GPO
+- Cannot be recovered (unless backed up)
+
+VERIFY IMPACT:
+1. Check if any OUs still reference this GPO
+2. Run gpupdate /force on affected computers
+3. Monitor for unexpected behavior
+
+If deleted by mistake, restore from backup:
+Restore-GPO -BackupId <GUID> -Path <BackupPath>
+"@
+                } catch {
+                    "Error deleting GPO: $($_.Exception.Message)"
                 }
             }
             
