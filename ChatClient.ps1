@@ -8531,9 +8531,15 @@ function Get-RelevantTools {
 
 function Trim-ConversationHistory {
     param(
-        [int]$maxMessages = 20,  # Keep last 20 messages (10 exchanges)
-        [int]$maxTokensEstimate = 50000  # Rough estimate to stay under rate limits
+        [string]$model = "gpt-4o-mini"
     )
+    
+    # Set token limits based on model: 200K for mini, 30K for turbo/normal
+    $maxTokens = if ($model -like "*mini*") { 200000 } else { 30000 }
+    
+    # Rough estimate: 1 message ≈ 500 tokens (adjust based on your usage)
+    $avgTokensPerMessage = 500
+    $maxMessages = [Math]::Floor($maxTokens / $avgTokensPerMessage)
     
     # Always keep system message separate, trim user/assistant/tool messages
     $historyCount = $global:conversationHistory.Count
@@ -8553,6 +8559,8 @@ function Trim-ConversationHistory {
     
     # Update global history
     $global:conversationHistory = $trimmedHistory
+    
+    Write-Host "[Trimmed conversation history to last $maxMessages messages (~$maxTokens tokens max for $model)]" -ForegroundColor Yellow
     
     return $trimmedHistory
 }
@@ -8604,13 +8612,14 @@ When creating a plan, break it into clear steps. As you complete each step, use 
         $systemMsg += "`n`n" + $instructionsBox.Text
     }
     
-    # Trim conversation history to prevent token overload
-    $trimmedHistory = Trim-ConversationHistory -maxMessages 20
+    $selectedModel = $modelCombo.SelectedItem.Content
+    if (-not $selectedModel) { $selectedModel = "gpt-4o-mini" }
+    
+    # Trim conversation history to prevent token overload (200K for mini, 30K for others)
+    $trimmedHistory = Trim-ConversationHistory -model $selectedModel
     
     $messages += @{role = "system"; content = $systemMsg}
     $messages += $trimmedHistory
-    
-    $selectedModel = $modelCombo.SelectedItem.Content
     if (-not $selectedModel) { $selectedModel = "gpt-4o-mini" }
     Add-ChatMessage "System" "Using model: $selectedModel"
     
@@ -8665,22 +8674,20 @@ When creating a plan, break it into clear steps. As you complete each step, use 
                 
                 $result = Invoke-PowerShellTool -toolName $toolName -arguments $toolArgs
                 
-                $global:conversationHistory += @{
-                    role = "tool"
-                    tool_call_id = $toolCall.id
-                    content = $result
-                }
+            $global:conversationHistory += @{
+                role = "tool"
+                tool_call_id = $toolCall.id
+                content = $result
             }
-            
-            # Send follow-up request with tool results
-            # Trim history again after adding tool results
-            $trimmedHistory = Trim-ConversationHistory -maxMessages 20
-            
-            $messages = @()
-            $messages += @{role = "system"; content = $systemMsg}
-            $messages += $trimmedHistory
-            
-            $body = @{
+        }
+        
+        # Send follow-up request with tool results
+        # Trim history again after adding tool results
+        $trimmedHistory = Trim-ConversationHistory -model $selectedModel
+        
+        $messages = @()
+        $messages += @{role = "system"; content = $systemMsg}
+        $messages += $trimmedHistory            $body = @{
                 model = $selectedModel
                 messages = $messages
                 temperature = 0
