@@ -1088,7 +1088,19 @@ function Invoke-PowerShellTool {
             }
             "reset_network_stack" { netsh winsock reset; netsh int ip reset; "Network stack reset" }
             "get_user_info" { Get-LocalUser | Select-Object Name, Enabled, LastLogon, PasswordLastSet, PasswordExpires | ConvertTo-Json }
-            "get_permissions" { Get-Acl -Path $arguments.path | ConvertTo-Json -Depth 3 }
+            "get_permissions" { 
+                $acl = Get-Acl -Path $arguments.path
+                $result = @"
+Path: $($acl.Path)
+Owner: $($acl.Owner)
+
+Access Rules:
+"@
+                foreach ($access in $acl.Access) {
+                    $result += "`n$($access.IdentityReference): $($access.FileSystemRights) ($($access.AccessControlType))"
+                }
+                $result
+            }
             "get_security_groups" { Get-LocalGroup | Select-Object Name, Description | ConvertTo-Json }
             "create_local_user" { $secPwd = ConvertTo-SecureString $arguments.password -AsPlainText -Force; New-LocalUser -Name $arguments.username -Password $secPwd; "User created" }
             "delete_local_user" { Remove-LocalUser -Name $arguments.username -Confirm:$false; "User deleted" }
