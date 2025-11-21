@@ -483,6 +483,16 @@ $global:toolDefinitions = @(
     # PowerShell Execution Tools (1)
     @{type="function"; function=@{name="execute_powershell_command"; description="Execute arbitrary PowerShell command or script and return output. Can run any PowerShell cmdlet, function, or script block. Output is captured and returned. WARNINGS: (1) Commands run with current user privileges - dangerous commands can cause system damage. (2) Use carefully with system-modifying commands. (3) Long-running commands may timeout. (4) Interactive commands won't work. Examples: Get-Process, Get-Service, calculations, file operations, etc."; parameters=@{type="object"; properties=@{command=@{type="string"; description="PowerShell command or script to execute (e.g., 'Get-Date', 'Get-Process | Select -First 5', '(Get-Date).AddDays(7)')"}; timeoutSeconds=@{type="number"; description="Optional: Maximum seconds to wait for command completion (default: 30, max: 300)"}}; required=@("command")}}}
     
+    # WinRM & PS Remoting Setup Tools (8)
+    @{type="function"; function=@{name="enable_psremoting"; description="Enable PowerShell Remoting on local server using Enable-PSRemoting. Configures WinRM service, creates firewall rules, sets service to auto-start, and creates PS session endpoint. REQUIRES: Administrator privileges. ACTIONS: (1) Starts WinRM service, (2) Sets to automatic startup, (3) Creates HTTP listener on port 5985, (4) Creates firewall exception for WS-Management, (5) Enables PS session configurations. After running, server can accept remote CIS hardening connections."; parameters=@{type="object"; properties=@{force=@{type="boolean"; description="true to skip confirmation prompts and force enable (recommended for scripts), false to prompt for confirmation"}; skipNetworkProfileCheck=@{type="boolean"; description="true to enable on Public network profile (less secure but sometimes needed), false to require Private/Domain profile only (default, more secure)"}}; required=@()}}}
+    @{type="function"; function=@{name="disable_psremoting"; description="Disable PowerShell Remoting on local server using Disable-PSRemoting. Disables PS session configurations but leaves WinRM service running (other apps may need it). REQUIRES: Admin privileges. Does NOT stop WinRM service or remove firewall rules - use stop_winrm_service for complete shutdown."; parameters=@{type="object"; properties=@{force=@{type="boolean"; description="true to skip confirmation prompts, false to prompt before disabling"}}; required=@()}}}
+    @{type="function"; function=@{name="get_winrm_config"; description="Get current WinRM configuration using winrm get winrm/config. Shows listener settings, authentication methods, service settings, max memory per shell, max concurrent operations, timeouts, and ports. Useful for troubleshooting remote connection issues or verifying configuration before accepting CIS hardening connections."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
+    @{type="function"; function=@{name="configure_winrm_https"; description="Configure WinRM HTTPS listener using certificate for encrypted remote connections. Creates HTTPS listener on port 5986 using specified certificate thumbprint. More secure than HTTP (port 5985). REQUIRES: (1) Administrator privileges, (2) Valid server certificate in LocalMachine\\My store, (3) Certificate subject must match server hostname/FQDN. FIREWALL: Creates inbound rule for port 5986. Use for production environments requiring encryption."; parameters=@{type="object"; properties=@{certThumbprint=@{type="string"; description="Certificate thumbprint (40-char hex string). Use list_certificates to find cert. Certificate must have Server Authentication EKU and match server hostname."}; hostname=@{type="string"; description="Server hostname or FQDN that matches certificate subject (e.g., 'server01.domain.com')"}}; required=@("certThumbprint","hostname")}}}
+    @{type="function"; function=@{name="test_winrm_local"; description="Test WinRM service locally using Test-WSMan. Verifies WinRM is running, responding, and properly configured. Returns protocol version, product version, and OS details. Quick check to confirm server is ready to accept remote CIS hardening connections. Does not require credentials since testing local endpoint."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
+    @{type="function"; function=@{name="configure_trusted_hosts"; description="Configure WinRM TrustedHosts to allow connections from specific computers. Required for workgroup (non-domain) environments or when using IP addresses. SECURITY WARNING: TrustedHosts accepts connections from listed computers without mutual authentication. Use * for all computers (NOT RECOMMENDED for production). Domain environments don't need this. REQUIRES: Admin privileges, WinRM service restart."; parameters=@{type="object"; properties=@{trustedHosts=@{type="string"; description="Comma-separated list of hostnames, IPs, or wildcards (e.g., 'SERVER01,192.168.1.*', 'SERVER01.domain.com', or '*' for all - NOT RECOMMENDED)"}; action=@{type="string"; enum=@("Set","Add","Clear"); description="'Set' to replace current list, 'Add' to append to existing list, 'Clear' to remove all trusted hosts"}}; required=@("trustedHosts","action")}}}
+    @{type="function"; function=@{name="get_psremoting_status"; description="Get comprehensive PowerShell Remoting status including WinRM service state, listeners (HTTP/HTTPS), firewall rules, session configurations, trusted hosts, and authentication methods. Complete diagnostic of remote management readiness. Shows whether server is properly configured to accept remote CIS hardening connections."; parameters=@{type="object"; properties=@{}; additionalProperties=$false}}}
+    @{type="function"; function=@{name="configure_winrm_firewall"; description="Manually configure Windows Firewall rules for WinRM. Creates inbound rules for WinRM HTTP (5985) and/or HTTPS (5986). Useful if Enable-PSRemoting didn't create firewall rules or if rules were deleted. REQUIRES: Admin privileges. PROFILES: Creates rules for Domain, Private, and Public profiles (can be restricted per profile)."; parameters=@{type="object"; properties=@{enableHTTP=@{type="boolean"; description="true to create/enable HTTP rule (port 5985), false to skip"}; enableHTTPS=@{type="boolean"; description="true to create/enable HTTPS rule (port 5986), false to skip"}; allowPublicProfile=@{type="boolean"; description="true to allow on Public network profile (less secure), false to restrict to Domain/Private only (recommended)"}}; required=@("enableHTTP","enableHTTPS")}}}
+    
     # Remote Server CIS Hardening Tools (10)
     @{type="function"; function=@{name="test_remote_server"; description="Test connectivity and authentication to remote Windows server using Test-WSMan and Test-Connection. Verifies WinRM is enabled, ports are accessible (5985/5986), and credentials are valid. PREREQUISITES: Target server must have WinRM enabled (Enable-PSRemoting), firewall rules allowing WinRM, and user must have admin rights on remote server. Returns connectivity status, WinRM protocol version, and authentication methods."; parameters=@{type="object"; properties=@{computerName=@{type="string"; description="Remote server hostname, FQDN, or IP address (e.g., 'SERVER01', 'server01.domain.com', '192.168.1.50')"}; credential=@{type="string"; description="Username in format DOMAIN\\username or username@domain.com (will prompt for password if needed)"}; useSSL=@{type="boolean"; description="true to use HTTPS (port 5986) with SSL, false for HTTP (port 5985). SSL requires certificate on remote server."}}; required=@("computerName")}}}
     @{type="function"; function=@{name="apply_cis_to_remote_server"; description="Apply CIS Benchmark hardening to remote Windows server via PowerShell Remoting. Executes CIS baseline tools remotely using Invoke-Command. Can apply full baseline or specific categories. REQUIREMENTS: WinRM enabled on target, admin credentials, sufficient permissions. WARNINGS: (1) May disrupt services and require restart. (2) Test in non-production first. (3) Creates system restore point before changes. (4) Backs up current configuration. Shows detailed progress and generates compliance report."; parameters=@{type="object"; properties=@{computerName=@{type="string"; description="Remote server hostname or IP"}; credential=@{type="string"; description="Admin username (will prompt for password)"}; level=@{type="string"; enum=@("Level1","Level2"); description="CIS Level: 'Level1' for basic hardening (less restrictive, compatible), 'Level2' for high security (more restrictive, may affect functionality)"}; categories=@{type="array"; description="Optional: Specific categories to apply (leave empty for all). Options: 'UserRights', 'AuditPolicy', 'Services', 'SecurityOptions', 'Templates', 'Firewall', 'UserConfig'"; items=@{type="string"}}; dryRun=@{type="boolean"; description="true to simulate changes without applying (audit only), false to apply changes. RECOMMENDED: Run dry-run first to preview impact."}}; required=@("computerName","credential","level")}}}
@@ -2377,6 +2387,295 @@ CONCLUSION: Complete end-to-end CIS compliance capability with no gaps.
                     }
                 } catch {
                     "Error executing command: $($_.Exception.Message)"
+                }
+            }
+            
+            # WinRM & PS Remoting Setup Tools
+            "enable_psremoting" {
+                try {
+                    $forceFlag = if ($arguments.force) { '-Force' } else { '' }
+                    $skipCheck = if ($arguments.skipNetworkProfileCheck) { '-SkipNetworkProfileCheck' } else { '' }
+                    
+                    Invoke-Expression "Enable-PSRemoting $forceFlag $skipCheck"
+                    
+                    @"
+=== PowerShell Remoting Enabled Successfully ===
+
+CONFIGURED:
+✓ WinRM service started and set to automatic
+✓ HTTP listener created on port 5985
+✓ Firewall exception created for WS-Management
+✓ PS session configurations enabled
+✓ Server ready to accept remote CIS hardening connections
+
+VERIFY:
+Run 'get_psremoting_status' to verify configuration
+Run 'test_winrm_local' to test local WinRM
+
+SECURITY NOTES:
+- HTTP (5985) is unencrypted - use for trusted networks only
+- For production, configure HTTPS listener with 'configure_winrm_https'
+- Firewall rules created for Domain and Private profiles
+
+NEXT STEPS:
+1. (Optional) Configure HTTPS listener for encrypted connections
+2. Test connectivity from remote machine with 'test_remote_server'
+3. Run 'audit_remote_server_cis' from remote console to audit this server
+4. Apply CIS hardening with 'apply_cis_to_remote_server'
+"@
+                } catch {
+                    "Error enabling PS Remoting: $($_.Exception.Message)`n`nREQUIREMENT: Must run as Administrator"
+                }
+            }
+            
+            "disable_psremoting" {
+                try {
+                    $forceFlag = if ($arguments.force) { '-Force' } else { '' }
+                    Invoke-Expression "Disable-PSRemoting $forceFlag"
+                    
+                    @"
+=== PowerShell Remoting Disabled ===
+
+DISABLED:
+✓ PS session configurations disabled
+✓ Remote connections will be rejected
+
+NOT CHANGED:
+- WinRM service still running (other apps may use it)
+- Firewall rules not removed
+- Listeners still configured
+
+TO FULLY DISABLE:
+- Stop WinRM service: Stop-Service WinRM
+- Set to manual: Set-Service WinRM -StartupType Manual
+- Remove firewall rules with 'configure_winrm_firewall'
+
+Server will no longer accept remote CIS hardening connections.
+"@
+                } catch {
+                    "Error disabling PS Remoting: $($_.Exception.Message)"
+                }
+            }
+            
+            "get_winrm_config" {
+                try {
+                    $config = winrm get winrm/config
+                    @"
+=== WinRM Configuration ===
+
+$config
+
+Use 'get_psremoting_status' for formatted status report.
+"@
+                } catch {
+                    "Error getting WinRM config: $($_.Exception.Message)"
+                }
+            }
+            
+            "configure_winrm_https" {
+                try {
+                    # Verify certificate exists
+                    $cert = Get-ChildItem Cert:\LocalMachine\My\$($arguments.certThumbprint) -ErrorAction SilentlyContinue
+                    
+                    if (-not $cert) {
+                        "ERROR: Certificate with thumbprint $($arguments.certThumbprint) not found in LocalMachine\My store.`n`nUse 'list_certificates' to find available certificates or 'create_self_signed_certificate' to create one."
+                    } else {
+                        # Create HTTPS listener
+                        $result = winrm create winrm/config/Listener?Address=*+Transport=HTTPS "@{Hostname=`"$($arguments.hostname)`";CertificateThumbprint=`"$($arguments.certThumbprint)`"}"
+                        
+                        # Create firewall rule
+                        New-NetFirewallRule -Name "WinRM-HTTPS" -DisplayName "Windows Remote Management (HTTPS-In)" -Protocol TCP -LocalPort 5986 -Action Allow -Profile Domain,Private -ErrorAction SilentlyContinue | Out-Null
+                        
+                        @"
+=== WinRM HTTPS Listener Configured ===
+
+Certificate: $($cert.Subject)
+Thumbprint: $($arguments.certThumbprint)
+Hostname: $($arguments.hostname)
+Port: 5986
+Firewall: Rule created for port 5986
+
+LISTENER DETAILS:
+$result
+
+VERIFY:
+Test locally: Test-WSMan -UseSSL
+Test remote: Test-WSMan -ComputerName $($arguments.hostname) -UseSSL
+
+CLIENTS MUST:
+- Use -UseSSL flag when connecting
+- Trust the certificate (or use self-signed cert workaround)
+- Allow port 5986 through firewalls
+
+Remote connections now encrypted with SSL/TLS.
+"@
+                    }
+                } catch {
+                    "Error configuring HTTPS listener: $($_.Exception.Message)"
+                }
+            }
+            
+            "test_winrm_local" {
+                try {
+                    $result = Test-WSMan -ErrorAction Stop
+                    @"
+=== WinRM Local Test - SUCCESS ===
+
+Product: $($result.ProductVendor) $($result.ProductVersion)
+Protocol: $($result.wsmid)
+Status: WinRM is running and responding
+
+Server is ready to accept remote CIS hardening connections.
+
+NEXT STEPS:
+- Test from remote machine with 'test_remote_server'
+- Check full status with 'get_psremoting_status'
+"@
+                } catch {
+                    @"
+=== WinRM Local Test - FAILED ===
+
+ERROR: $($_.Exception.Message)
+
+WinRM is not responding. Server cannot accept remote connections.
+
+TROUBLESHOOTING:
+1. Enable PS Remoting: run 'enable_psremoting'
+2. Check WinRM service: Get-Service WinRM
+3. Check firewall rules: Get-NetFirewallRule -Name "WINRM-HTTP-In-TCP"
+"@
+                }
+            }
+            
+            "configure_trusted_hosts" {
+                try {
+                    $currentPath = "WSMan:\localhost\Client\TrustedHosts"
+                    $current = (Get-Item $currentPath).Value
+                    
+                    switch ($arguments.action) {
+                        'Set' {
+                            Set-Item $currentPath -Value $arguments.trustedHosts -Force
+                            $newValue = $arguments.trustedHosts
+                        }
+                        'Add' {
+                            if ($current) {
+                                $newValue = "$current,$($arguments.trustedHosts)"
+                            } else {
+                                $newValue = $arguments.trustedHosts
+                            }
+                            Set-Item $currentPath -Value $newValue -Force
+                        }
+                        'Clear' {
+                            Set-Item $currentPath -Value "" -Force
+                            $newValue = "(empty)"
+                        }
+                    }
+                    
+                    # Restart WinRM to apply changes
+                    Restart-Service WinRM -Force
+                    
+                    @"
+=== TrustedHosts Configuration Updated ===
+
+Action: $($arguments.action)
+Previous Value: $current
+New Value: $newValue
+
+WinRM service restarted to apply changes.
+
+SECURITY WARNING:
+TrustedHosts allows connections from listed computers without mutual authentication.
+Using '*' (all computers) is NOT RECOMMENDED for production environments.
+
+Domain-joined computers do not need TrustedHosts configuration.
+
+Use TrustedHosts only for:
+- Workgroup environments
+- Connecting to servers by IP address
+- Development/testing scenarios
+"@
+                } catch {
+                    "Error configuring TrustedHosts: $($_.Exception.Message)"
+                }
+            }
+            
+            "get_psremoting_status" {
+                try {
+                    $winrmService = Get-Service WinRM
+                    $listeners = winrm enumerate winrm/config/listener
+                    $sessionConfigs = Get-PSSessionConfiguration | Select-Object Name, Permission
+                    $trustedHosts = (Get-Item WSMan:\localhost\Client\TrustedHosts -ErrorAction SilentlyContinue).Value
+                    $firewallHTTP = Get-NetFirewallRule -Name "WINRM-HTTP-In-TCP" -ErrorAction SilentlyContinue
+                    $firewallHTTPS = Get-NetFirewallRule -Name "WinRM-HTTPS" -ErrorAction SilentlyContinue
+                    
+                    @"
+=== PowerShell Remoting Status Report ===
+
+WINRM SERVICE:
+State: $($winrmService.Status)
+Startup: $($winrmService.StartType)
+
+LISTENERS:
+$listeners
+
+SESSION CONFIGURATIONS:
+$($sessionConfigs | Format-Table -AutoSize | Out-String)
+
+TRUSTED HOSTS:
+$( if($trustedHosts) { $trustedHosts } else { "(none - domain authentication only)" } )
+
+FIREWALL RULES:
+HTTP (5985): $( if($firewallHTTP) { "$($firewallHTTP.Enabled) - $($firewallHTTP.Profile)" } else { "Not configured" } )
+HTTPS (5986): $( if($firewallHTTPS) { "$($firewallHTTPS.Enabled) - $($firewallHTTPS.Profile)" } else { "Not configured" } )
+
+READY FOR REMOTE CIS HARDENING: $( if($winrmService.Status -eq 'Running') { 'YES ✓' } else { 'NO ✗' } )
+
+$(if($winrmService.Status -ne 'Running') {
+    "`nTO ENABLE: Run 'enable_psremoting'"
+})
+"@
+                } catch {
+                    "Error getting PS Remoting status: $($_.Exception.Message)"
+                }
+            }
+            
+            "configure_winrm_firewall" {
+                try {
+                    $profiles = if ($arguments.allowPublicProfile) { "Domain,Private,Public" } else { "Domain,Private" }
+                    
+                    if ($arguments.enableHTTP) {
+                        New-NetFirewallRule -Name "WINRM-HTTP-In-TCP" -DisplayName "Windows Remote Management (HTTP-In)" -Protocol TCP -LocalPort 5985 -Action Allow -Profile $profiles -ErrorAction SilentlyContinue | Out-Null
+                        $httpStatus = "✓ HTTP rule created (port 5985)"
+                    } else {
+                        $httpStatus = "✗ HTTP rule not created"
+                    }
+                    
+                    if ($arguments.enableHTTPS) {
+                        New-NetFirewallRule -Name "WinRM-HTTPS" -DisplayName "Windows Remote Management (HTTPS-In)" -Protocol TCP -LocalPort 5986 -Action Allow -Profile $profiles -ErrorAction SilentlyContinue | Out-Null
+                        $httpsStatus = "✓ HTTPS rule created (port 5986)"
+                    } else {
+                        $httpsStatus = "✗ HTTPS rule not created"
+                    }
+                    
+                    @"
+=== WinRM Firewall Rules Configured ===
+
+$httpStatus
+$httpsStatus
+Profiles: $profiles
+
+VERIFY:
+Get-NetFirewallRule -Name "WINRM-HTTP-In-TCP","WinRM-HTTPS"
+
+SECURITY NOTES:
+- Rules created for specified profiles only
+- Public profile $(if($arguments.allowPublicProfile){'ENABLED (less secure)'}else{'DISABLED (recommended)'})
+- Inbound traffic on WinRM ports now allowed
+
+Server can now accept remote CIS hardening connections through firewall.
+"@
+                } catch {
+                    "Error configuring WinRM firewall rules: $($_.Exception.Message)"
                 }
             }
             
